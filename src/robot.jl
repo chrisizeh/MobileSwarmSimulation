@@ -14,6 +14,7 @@ mutable struct Robot
 
     Robot(id, width, length) = new(id, width, length, [], 0, 0, 0, 0, 0)
     Robot(id, width, length, pos_x, pos_y) = new(id, width, length, [], pos_x, pos_y, 0, 0, 0)
+    Robot(id, width, length, pos_x, pos_y, deg) = new(id, width, length, [], pos_x, pos_y, deg, 0, 0)
 end
 
 function update_speed!(robot::Robot, left::Float64, right::Float64)
