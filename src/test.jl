@@ -1,26 +1,35 @@
-using Plots
 include("include_me.jl")
 
 robot = Robot(0, 2, 3)
-border = Border(-30, 30, -30, 30)
+border = Border(-10, 10, -10, 10)
+update_speed!(robot, 1, 1)
 
-update_speed!(robot, 3, -3)
-move!(robot, 2, border)
-update_speed!(robot, 3, 3)
-move!(robot, 2, border)
-
-
-
-plt = plot(
-    1,
-    xlim = x_axis(border),
-    ylim = y_axis(border),
-    legend = false,
-    marker = 2,
-)
-
-# build an animated gif by pushing new points to the plot, saving every 10th frame
-@gif for i=1:10
+for i in 1:5
     move!(robot, 1, border)
-    push!(plt, robot.pos_x, robot.pos_y)
-end every 1
+end
+
+update_speed!(robot, 0, 1)
+
+for i in 1:3
+    move!(robot, 1, border)
+end
+
+update_speed!(robot, 1, 1)
+
+for i in 1:5
+    move!(robot, 1, border)
+end
+
+update_speed!(robot, -0.5, 1.)
+
+for i in 1:3
+    move!(robot, 1, border)
+end
+
+update_speed!(robot, 1, 1)
+
+for i in 1:5
+    move!(robot, 1, border)
+end
+
+plot_single_robot_hist(robot, border)

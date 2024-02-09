@@ -5,16 +5,18 @@ mutable struct Robot
     width::Float16      # m
     length::Float16     # m
 
+    history::Array{Tuple{Float32, Float32, Float32}}
     pos_x::Float32      # m
     pos_y::Float32      # m
     deg::Float16        # degree from y-axis
     vel_left::Float16   # m/s
     vel_right::Float16  # m/s
 
-    Robot(id, width, length) = new(id, width, length, 0, 0, 0, 0, 0)
+    Robot(id, width, length) = new(id, width, length, [], 0, 0, 0, 0, 0)
+    Robot(id, width, length, pos_x, pos_y) = new(id, width, length, [], pos_x, pos_y, 0, 0, 0)
 end
 
-function update_speed!(robot::Robot, left::Float16, right::Float16)
+function update_speed!(robot::Robot, left::Float64, right::Float64)
     robot.vel_left = left
     robot.vel_right = right
 end
@@ -33,20 +35,28 @@ function move!(robot::Robot, sec::Int64, border::Border)
     vel = (robot.vel_left + robot.vel_right) / 2
 
     if robot.vel_right != robot.vel_left
-        diff = robot.vel_left - robot.vel_right
+        diff = robot.vel_right - robot.vel_left
         new_deg = (diff * sec / robot.width) + robot.deg
 
+        println("diff $((diff * sec / robot.width) * 180/pi)")
         println("degree $(new_deg * 180/pi)")
 
+        println("Before: $(robot.pos_x), $(robot.pos_y)")
+
         robot.pos_x += robot.width * vel / diff * (sin(new_deg) - sin(robot.deg) )
-        robot.pos_y += robot.width * vel / diff * (cos(new_deg) - cos(robot.deg) )
+        robot.pos_y -= robot.width * vel / diff * (cos(new_deg) - cos(robot.deg) )
         robot.deg = new_deg
+
+        println("After: $(robot.pos_x), $(robot.pos_y)")
     else
-        robot.pos_x += vel * sin(robot.deg) * sec
-        robot.pos_y += vel * cos(robot.deg) * sec
+        println("Before: $(robot.pos_x), $(robot.pos_y)")
+        robot.pos_x += vel * cos(robot.deg) * sec
+        robot.pos_y += vel * sin(robot.deg) * sec
+        println("After: $(robot.pos_x), $(robot.pos_y)")
     end
 
     check_border!(robot, border)
+    push!(robot.history, (robot.pos_x, robot.pos_y, robot.deg))
     
 end
 
