@@ -7,23 +7,23 @@ include("area.jl")
 mutable struct Simulation 
     robots::Array{Robot}
     border::Border
-    checkBorder::Bool
+    check_border::Bool
 
-    sensoricDistance::Float64
-    timeStep::Float64
-    numGrid::Int64
+    sensoric_distance::Float64
+    time_step::Float64
+    num_grid::Int64
 
     grid::Array{Array{Robot}}
-    gridStepX::Float64
-    gridStepY::Float64
+    grid_step_x::Float64
+    grid_step_y::Float64
 
     function Simulation(robots, border, check=false, dist=nothing, time=1, num_grid=5)
         if isnothing(dist)
             dist = (border.right - border.left)/10
         end
 
-        gridStepX = (border.right - border.left)/num_grid
-        gridStepY = (border.top - border.bottom)/num_grid
+        grid_step_x = (border.right - border.left)/num_grid
+        grid_step_y = (border.top - border.bottom)/num_grid
         grid = Array{Vector{Robot}}(undef, num_grid, num_grid)
 
         for i in eachindex(grid)
@@ -31,12 +31,12 @@ mutable struct Simulation
         end
 
         for robot in robots
-            idX = Int64(ceil((robot.pos_x - border.left) /  gridStepX))
-            idY = Int64(ceil((robot.pos_y - border.bottom) /  gridStepY))
+            idX = Int64(ceil((robot.pos_x - border.left) /  grid_step_x))
+            idY = Int64(ceil((robot.pos_y - border.bottom) /  grid_step_y))
             push!(grid[idX, idY], robot)
         end
 
-        new(robots, border, check, dist, time, num_grid, grid, gridStepX, gridStepY)
+        new(robots, border, check, dist, time, num_grid, grid, grid_step_x, grid_step_y)
     end
 
 end
@@ -44,28 +44,28 @@ end
 
 function update!(sim::Simulation)
     for robot in sim.robots
-        idX = Int64(ceil((robot.pos_x - sim.border.left) /  sim.gridStepX))
-        idY = Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.gridStepY))
+        idX = Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))
+        idY = Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))
 
-        move!(robot, sim.timeStep, sim.checkBorder, sim.border)
+        move!(robot, sim.time_step, sim.check_border, sim.border)
 
-        newIdX = Int64(ceil((robot.pos_x - sim.border.left) /  sim.gridStepX))
-        newIdY = Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.gridStepY))
+        newIdX = Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))
+        newIdY = Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))
 
         if(idX != newIdX || idY != newIdY)
             @info "move $(robot.id) from $(idX) $(idY) to $(newIdX) $(newIdY)"
             deleteat!(sim.grid[idX, idY], findfirst(==(robot), sim.grid[idX, idY]))
-            push!(sim.grid[min(sim.numGrid, max(1, newIdX)), min(sim.numGrid, max(1, newIdY))], robot)
+            push!(sim.grid[min(sim.num_grid, max(1, newIdX)), min(sim.num_grid, max(1, newIdY))], robot)
         end
 
         for i in eachindex(sim.grid)
-            row, col = fldmod1(i, sim.numGrid)
+            row, col = fldmod1(i, sim.num_grid)
             if(length(sim.grid[row, col]) > 1)
                 robs = sim.grid[row, col]
-                append!(robs, sim.grid[min(sim.numGrid, max(1, row - 1)), min(sim.numGrid, max(1, col - 1))])
-                append!(robs, sim.grid[min(sim.numGrid, max(1, row - 1)), min(sim.numGrid, max(1, col + 1))])
-                append!(robs, sim.grid[min(sim.numGrid, max(1, row + 1)), min(sim.numGrid, max(1, col - 1))])
-                append!(robs, sim.grid[min(sim.numGrid, max(1, row + 1)), min(sim.numGrid, max(1, col + 1))])
+                append!(robs, sim.grid[min(sim.num_grid, max(1, row - 1)), min(sim.num_grid, max(1, col - 1))])
+                append!(robs, sim.grid[min(sim.num_grid, max(1, row - 1)), min(sim.num_grid, max(1, col + 1))])
+                append!(robs, sim.grid[min(sim.num_grid, max(1, row + 1)), min(sim.num_grid, max(1, col - 1))])
+                append!(robs, sim.grid[min(sim.num_grid, max(1, row + 1)), min(sim.num_grid, max(1, col + 1))])
                 unique!(robs)
 
                 for robot in sim.grid[row, col]

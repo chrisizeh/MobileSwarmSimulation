@@ -45,7 +45,6 @@ function stop(robot::Robot)
 	robot.update_speed(0, 0)
 end
 
-# Paper for calculation: https://rossum.sourceforge.net/papers/DiffSteer/
 function move_intersection!(robot::Robot, robots::Array{Robot}=[])
     for other in robots
         if(robot.id != other.id)
@@ -59,6 +58,8 @@ function move_intersection!(robot::Robot, robots::Array{Robot}=[])
 
 end
 
+
+# Paper for calculation: https://rossum.sourceforge.net/papers/DiffSteer/
 function move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border)
 	push!(robot.history, (robot.pos_x, robot.pos_y, robot.deg))
 
