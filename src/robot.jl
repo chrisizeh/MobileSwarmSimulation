@@ -29,6 +29,7 @@ mutable struct Robot
 	Robot(id, width, length) = new(id, width, length, [], 0, 0, pi / 2, 0, 0)
 	Robot(id, width, length, pos_x, pos_y) = new(id, width, length, [], pos_x, pos_y, pi / 2, 0, 0)
 	Robot(id, width, length, pos_x, pos_y, deg) = new(id, width, length, [], pos_x, pos_y, deg + pi / 2, 0, 0)
+	Robot(id, width, length, pos_x, pos_y, deg, vel_left, vel_right) = new(id, width, length, [], pos_x, pos_y, deg + pi / 2, vel_left, vel_right)
 end
 
 function update_speed!(robot::Robot, left::Float64, right::Float64)
@@ -48,7 +49,6 @@ end
 function move_intersection!(robot::Robot, robots::Array{Robot}=[])
     for other in robots
         if(robot.id != other.id)
-			println("update")
             new_pos_x, new_pos_y, new_deg = check_intersection(robot, other, robot.pos_x, robot.pos_y, Float32(robot.deg))     
 			robot.pos_x = new_pos_x
 			robot.pos_y = new_pos_y

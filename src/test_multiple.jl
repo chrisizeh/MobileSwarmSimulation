@@ -18,10 +18,8 @@ end
 plot_hist(sim)
 
 
-robot1 = Robot(0, 2, 3, -2, 0, -pi/7)
-robot2 = Robot(1, 2, 3, 2, 0, pi/8)
-update_speed!(robot1, 1, 1)
-update_speed!(robot2, 1, 1)
+robot1 = Robot(0, 2, 3, -2, 0, -pi/7, 1, 1)
+robot2 = Robot(1, 2, 3, 2, 0, pi/8, 1, 1)
 
 robots = [robot1, robot2]
 sim2 = Simulation(robots, border, true, 10, 0.05, 5)
