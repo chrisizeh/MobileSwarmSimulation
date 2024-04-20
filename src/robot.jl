@@ -46,7 +46,7 @@ function stop(robot::Robot)
 end
 
 # Paper for calculation: https://rossum.sourceforge.net/papers/DiffSteer/
-function move!(robot::Robot, sec::Float64, border::Border)
+function move!(robot::Robot, sec::Float64, border::Border, robots::Array{Robot}=[])
 	vel = (robot.vel_left + robot.vel_right) / 2
 
 	if robot.vel_right != robot.vel_left
@@ -61,7 +61,14 @@ function move!(robot::Robot, sec::Float64, border::Border)
 		new_deg = robot.deg
 	end
 
-	new_pos_x, new_pos_y, new_deg = check_border!(robot, border, new_pos_x, new_pos_y, new_deg)
+	new_pos_x, new_pos_y, new_deg = check_border(robot, border, new_pos_x, new_pos_y, new_deg)
+
+    for other in robots
+        if(robot.id != other.id)
+            new_pos_x, new_pos_y, new_deg = check_intersection(robot, other, new_pos_x, new_pos_y, Float32(new_deg))     
+        end
+    end
+
 	robot.pos_x = new_pos_x
 	robot.pos_y = new_pos_y
 	robot.deg = new_deg
@@ -130,7 +137,82 @@ function get_intersections(border::Border, points)
 	return sides
 end
 
-function check_border!(robot::Robot, border::Border, new_pos_x::Float64, new_pos_y::Float64, new_deg::Float32)
+function get_intersections(points, other_points)
+    ks = []
+    ds = []
+
+    points_1 = []
+    points_2 = []
+    for i in 1:4
+        j = i < 4 ? i + 1 : 1
+
+        k = (other_points[i][2] - other_points[j][2]) / (other_points[i][1] - other_points[j][1])
+        d = other_points[i][2] - k * other_points[i][1]
+        push!(ks, k)
+        push!(ds, d)
+        
+        push!(points_1, points[1][2] - (k * points[1][1] + d))
+        push!(points_2, points[2][2] - (k * points[2][1] + d))
+    end
+
+    s_points_1 = [sign(i) for i in points_1]
+    s_points_2 = [sign(i) for i in points_2]
+
+    a = (points[1][2] - points[2][2]) / (points[1][1] - points[2][1])
+    b = points[2][2] - a * points[2][1]
+
+    if (s_points_1 == [1, -1, -1, 1] || s_points_1 == [-1, 1, 1, -1] || s_points_1 == [-1, -1, 1, 1] || s_points_1 == [1, 1, -1, -1])
+            @info "point 1 inside"
+
+            # @info [points[1][1] * a + b for i in 1:4]
+            # @info points[2][2]
+            res = [(ks[i] * points[2][1] + ds[i] - b)/a for i in 1:4]
+            # @info res
+            min_dist = [sqrt((points[1][1] - res[i])^2 +  (points[1][2] - ks[i] * points[1][1] + ds[i])^2) for i in 1:4]
+            min_i = argmin(min_dist)
+            mini = [res[min_i], ks[min_i] * points[2][1] + ds[min_i]]
+            @info "mindist $(min_dist)"
+            length = sqrt((mini[1] - points[1][1])^2 + (mini[2] - points[1][2])^2)
+            @info "length $(length)"
+            @info "deg $(atan(length/3) / pi * 180)"
+            return -atan(length/3)
+    else
+        @info "point 1 outside"
+    end
+
+    if (s_points_2 == [1, -1, -1, 1] || s_points_2 == [-1, 1, 1, -1] || s_points_2 == [-1, -1, 1, 1] || s_points_2 == [1, 1, -1, -1])
+        @info "point 2 inside"
+
+        # x = [(ks[i] * points[2][1] + ds[i] - b)/a for i in 1:4]
+        # y = [(ks[i] * points[2][1] + ds[i]) for i in 1:4]
+
+        
+        # plt = scatter(x, y)
+        # x = [points[i][1] for i in 1:4]
+        # y = [points[i][2] for i in 1:4]
+        # plot!(plt, x, y)
+
+        # plot!(plt, 1:10, [a * i + b for i in 1:10])
+
+        # display(plt)
+
+        res = [(ks[i] * points[2][1] + ds[i] - b)/a for i in 1:4]
+        min_dist = [sqrt((points[2][1] - res[i])^2 +  (points[2][2] - ks[i] * points[2][1] + ds[i])^2) for i in 1:4]
+        min_i = argmin(min_dist)
+        mini = [res[min_i], ks[min_i] * points[2][1] + ds[min_i]]
+        @info "mindist $(min_dist)"
+        length = sqrt((mini[1] - points[2][1])^2 + (mini[2] - points[2][2])^2)
+        @info "length $(length)"
+        @info "deg $(atan(length/3) / pi * 180)"
+        return atan(length/3)
+    else
+        @info "point 2 outside"
+    end
+    
+	return 0
+end
+
+function check_border(robot::Robot, border::Border, new_pos_x::Float64, new_pos_y::Float64, new_deg::Float32)
 	points = corner_points(new_pos_x, new_pos_y, new_deg, robot.width, robot.length)
 	sides = get_intersections(border, points)
 
@@ -146,6 +228,16 @@ function check_border!(robot::Robot, border::Border, new_pos_x::Float64, new_pos
 		new_pos_x += sides[i][1] / 2 - sides[i][2] / 2
 		new_deg += sign(sides[i][1]) * atan(sides[i][1] / abs(points[1][3-i] - points[2][3-i])) -sign(sides[i][2]) * atan(sides[i][2] / abs(points[1][3-i] - points[2][3-i]))
 	end
+
+	return new_pos_x, new_pos_y, new_deg
+end
+
+
+function check_intersection(robot::Robot, other_robot::Robot, new_pos_x::Float64, new_pos_y::Float64, new_deg::Float32)
+	points_rob = corner_points(new_pos_x, new_pos_y, new_deg, robot.width, robot.length)
+	points_other_rob = corner_points(other_robot.pos_x, other_robot.pos_y, other_robot.deg, robot.width, robot.length)
+	sides = get_intersections(points_rob, points_other_rob)
+    new_deg += sides
 
 	return new_pos_x, new_pos_y, new_deg
 end
