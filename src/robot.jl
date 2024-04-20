@@ -46,7 +46,22 @@ function stop(robot::Robot)
 end
 
 # Paper for calculation: https://rossum.sourceforge.net/papers/DiffSteer/
-function move!(robot::Robot, sec::Float64, border::Border, robots::Array{Robot}=[])
+function move_intersection!(robot::Robot, robots::Array{Robot}=[])
+    for other in robots
+        if(robot.id != other.id)
+			println("update")
+            new_pos_x, new_pos_y, new_deg = check_intersection(robot, other, robot.pos_x, robot.pos_y, Float32(robot.deg))     
+			robot.pos_x = new_pos_x
+			robot.pos_y = new_pos_y
+			robot.deg = new_deg
+        end
+    end
+
+end
+
+function move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border)
+	push!(robot.history, (robot.pos_x, robot.pos_y, robot.deg))
+
 	vel = (robot.vel_left + robot.vel_right) / 2
 
 	if robot.vel_right != robot.vel_left
@@ -61,20 +76,13 @@ function move!(robot::Robot, sec::Float64, border::Border, robots::Array{Robot}=
 		new_deg = robot.deg
 	end
 
-	new_pos_x, new_pos_y, new_deg = check_border(robot, border, new_pos_x, new_pos_y, new_deg)
-
-    for other in robots
-        if(robot.id != other.id)
-            new_pos_x, new_pos_y, new_deg = check_intersection(robot, other, new_pos_x, new_pos_y, Float32(new_deg))     
-        end
-    end
+	if checkBorder
+		new_pos_x, new_pos_y, new_deg = check_border(robot, border, new_pos_x, new_pos_y, new_deg)
+	end
 
 	robot.pos_x = new_pos_x
 	robot.pos_y = new_pos_y
 	robot.deg = new_deg
-
-	push!(robot.history, (robot.pos_x, robot.pos_y, robot.deg))
-
 end
 
 function corner_points(x::Float64, y::Float64, deg::Float32, width::Float32, length::Float32)
