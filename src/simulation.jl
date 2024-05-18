@@ -77,8 +77,10 @@ function update!(sim::Simulation)
 end
 
 
-function Rectangle(x, y, deg, width, length)
-    return Shape(corner_points(x, y, deg, width, length))
+function Circle(pos, radius)
+    ang = range(0, 2π, length = 25)
+    front = range(-pi/4 + pos[3], pi/4 + pos[3], length = 5)
+    return [Shape(radius * cos.(ang) .+ pos[1], radius * sin.(ang) .+ pos[2]), Shape(radius * cos.(front) .+ pos[1], radius * sin.(front) .+ pos[2])]
 end
 
 
@@ -89,25 +91,16 @@ function plot_hist(sim::Simulation)
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
-        scatter([sim.robots[1].history[1, i]], [sim.robots[1].history[2, i]], 
+        plot(Circle(sim.robots[1].history[:, i], sim.robots[1].radius), 
             xlim = x_axis(border),
             ylim = y_axis(border),
-            shape = :circle,
             color = :orange,
-            markersize = sim.robots[1].radius,
-            legend = false)
-    # plot(sim.robots[1].history[i][1], [sim.robots[1].history[i][2]], 
-    #     markersize = sim.robots[1].radius,
-    #     color="orange",
-    #     xlim = x_axis(border),
-    #     ylim = y_axis(border),
-    #     legend = false
-    #     )
+            legend = false,
+            size = (width(border), height(border)))
 
     if (length(sim.robots) > 1)
         for j in 2:length(sim.robots)
-            scatter!([sim.robots[j].history[1, i]], [sim.robots[j].history[2, i]], 
-            markersize = sim.robots[j].radius)
+            plot!(Circle(sim.robots[j].history[:, i], sim.robots[j].radius), color=j)
         end
     end
     end

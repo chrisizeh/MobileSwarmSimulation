@@ -9,7 +9,7 @@ update_speed!(robot2, 1, 1)
 
 robots = [robot1, robot2]
 
-sim = Simulation(robots, border, false)
+sim = Simulation(robots, border, true)
 
 for i in 1:60
     update!(sim)
