@@ -19,7 +19,7 @@ mutable struct Robot
 	id::Int32
 	radius::Float32      # m
 
-	history::ElasticArray{Float64}
+	history::ElasticArray{Float64}	#ElasticArray, can expand on last dim
 	pos_x::Float64      # m
 	pos_y::Float64      # m
 	deg::Float32        # degree from y-axis
@@ -79,15 +79,12 @@ function move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border)
 	end
 
 	if checkBorder
-		@info "check_border"
-		new_pos_x, new_pos_y, new_deg = check_border(robot, border, new_pos_x, new_pos_y, new_deg)
+		new_pos_x, new_pos_y = check_border(robot, border, new_pos_x, new_pos_y)
 	end
 
 	robot.pos_x = new_pos_x
 	robot.pos_y = new_pos_y
 	robot.deg = new_deg
-
-	@info robot.pos_x, robot.pos_y, robot.deg
 end
 
 function corner_points(x::Float64, y::Float64, deg::Float32, radius::Float32)
@@ -115,40 +112,6 @@ function corner_points(x::Float64, y::Float64, deg::Float32, radius::Float32)
 
 	@info points
 	return points
-end
-
-function robot_corner_points(robot::Robot)
-	return corner_points(robot.pos_x, robot.pos_y, robot.deg, robot.radius)
-end
-
-function get_intersections(border::Border, points)
-	sides = []
-
-	if (points[1][1] >= border.right || points[2][1] >= border.right)
-		diff_1 = maximum([0, points[1][1] - border.right])
-		diff_2 = maximum([0, points[2][1] - border.right])
-	elseif (points[1][1] <= border.left || points[2][1] <= border.left)
-		diff_1 = minimum([0, points[1][1] - border.left])
-		diff_2 = minimum([0, points[2][1] - border.left])
-	else
-		diff_1 = 0
-		diff_2 = 0
-	end
-	push!(sides, [diff_1, diff_2])
-
-	if (points[1][2] >= border.top || points[2][2] >= border.top)
-		diff_1 = maximum([0, points[1][2] - border.top])
-		diff_2 = maximum([0, points[2][2] - border.top])
-	elseif (points[1][2] <= border.bottom || points[2][2] <= border.bottom)
-		diff_1 = minimum([0, points[1][2] - border.bottom])
-		diff_2 = minimum([0, points[2][2] - border.bottom])
-	else
-		diff_1 = 0
-		diff_2 = 0
-	end
-	push!(sides, [diff_1, diff_2])
-
-	return sides
 end
 
 function get_intersections(points, other_points)
@@ -226,24 +189,20 @@ function get_intersections(points, other_points)
 	return 0
 end
 
-function check_border(robot::Robot, border::Border, new_pos_x::Float64, new_pos_y::Float64, new_deg::Float32)
-	points = corner_points(new_pos_x, new_pos_y, new_deg, robot.radius)
-	sides = get_intersections(border, points)
-
-	for i in 1:2
-		if (sides[i][1] != 0 && sides[i][2] != 0)
-			new_pos_y -= (i - 1) * (sides[i][1] + sides[i][2]) / 2
-			new_pos_x -= (2 - i) * (sides[i][1] + sides[i][2]) / 2
-			new_deg = sign(sides[i][1]) * pi / 2 + -(pi / 2) * (2 - i)
-			break
-		end
-
-		new_pos_y -= (sides[i][1] + sides[i][2]) / 2
-		new_pos_x += sides[i][1] / 2 - sides[i][2] / 2
-		new_deg += sign(sides[i][1]) * atan(sides[i][1] / abs(points[1][3-i] - points[2][3-i])) -sign(sides[i][2]) * atan(sides[i][2] / abs(points[1][3-i] - points[2][3-i]))
+function check_border(robot::Robot, border::Border, new_pos_x::Float64, new_pos_y::Float64)
+	if (new_pos_x + robot.radius > border.right)
+		new_pos_x = border.right - robot.radius
+	elseif (new_pos_x - robot.radius < border.left)
+		new_pos_x = border.left + robot.radius
 	end
 
-	return new_pos_x, new_pos_y, new_deg
+	if (new_pos_y + robot.radius > border.top)
+		new_pos_y = border.top - robot.radius
+	elseif (new_pos_y - robot.radius < border.bottom)
+		new_pos_y = border.bottom + robot.radius
+	end
+
+	return new_pos_x, new_pos_y
 end
 
 
