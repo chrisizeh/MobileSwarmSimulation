@@ -44,32 +44,48 @@ end
 
 function update!(sim::Simulation)
     for robot in sim.robots
-        idX = Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))
-        idY = Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))
+        idX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
+        idY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
 
         move!(robot, sim.time_step, sim.check_border, sim.border)
 
-        newIdX = Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))
-        newIdY = Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))
+        newIdX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
+        newIdY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
 
         if(idX != newIdX || idY != newIdY)
             @info "move $(robot.id) from $(idX) $(idY) to $(newIdX) $(newIdY)"
             deleteat!(sim.grid[idX, idY], findfirst(==(robot), sim.grid[idX, idY]))
             push!(sim.grid[min(sim.num_grid, max(1, newIdX)), min(sim.num_grid, max(1, newIdY))], robot)
         end
+    end
 
-        for i in eachindex(sim.grid)
-            row, col = fldmod1(i, sim.num_grid)
-            if(length(sim.grid[row, col]) > 1)
-                robs = sim.grid[row, col]
-                append!(robs, sim.grid[min(sim.num_grid, max(1, row - 1)), min(sim.num_grid, max(1, col - 1))])
-                append!(robs, sim.grid[min(sim.num_grid, max(1, row - 1)), min(sim.num_grid, max(1, col + 1))])
-                append!(robs, sim.grid[min(sim.num_grid, max(1, row + 1)), min(sim.num_grid, max(1, col - 1))])
-                append!(robs, sim.grid[min(sim.num_grid, max(1, row + 1)), min(sim.num_grid, max(1, col + 1))])
-                unique!(robs)
+    for i in eachindex(sim.grid)
+        row, col = fldmod1(i, sim.num_grid)
+        if(length(sim.grid[row, col]) >= 1)
+            robs = sim.grid[row, col]
 
+            for x in -1:1
+                for y in -1:1
+                    append!(robs, sim.grid[min(sim.num_grid, max(1, row + x)), min(sim.num_grid, max(1, col + y))])
+                end
+            end
+            unique!(robs)
+
+            if(length(robs) > 1)
                 for robot in sim.grid[row, col]
+                    idX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
+                    idY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
+
                     move_intersection!(robot, robs)
+
+                    newIdX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
+                    newIdY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
+
+                    if(idX != newIdX || idY != newIdY)
+                        @info "move $(robot.id) from $(idX) $(idY) to $(newIdX) $(newIdY)"
+                        deleteat!(sim.grid[idX, idY], findfirst(==(robot), sim.grid[idX, idY]))
+                        push!(sim.grid[min(sim.num_grid, max(1, newIdX)), min(sim.num_grid, max(1, newIdY))], robot)
+                    end
                 end
             end
         end
