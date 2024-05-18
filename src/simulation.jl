@@ -17,7 +17,7 @@ mutable struct Simulation
     grid_step_x::Float64
     grid_step_y::Float64
 
-    function Simulation(robots, border, check=false, dist=nothing, time=1, num_grid=5)
+    function Simulation(robots, border; check=false, dist=nothing, time_step=1, num_grid=5)
         if isnothing(dist)
             dist = (border.right - border.left)/10
         end
@@ -36,7 +36,7 @@ mutable struct Simulation
             push!(grid[idX, idY], robot)
         end
 
-        new(robots, border, check, dist, time, num_grid, grid, grid_step_x, grid_step_y)
+        new(robots, border, check, dist, time_step, num_grid, grid, grid_step_x, grid_step_y)
     end
 
 end
@@ -84,7 +84,8 @@ function Circle(pos, radius)
 end
 
 
-function plot_hist(sim::Simulation)
+# Speedup in percentage (1 = 100%)
+function plot_hist(sim::Simulation; speedup=1)
     if(length(sim.robots) == 0)
         return
     end
@@ -104,5 +105,5 @@ function plot_hist(sim::Simulation)
         end
     end
     end
-    gif(anim, fps=10)
+    gif(anim, fps=speedup/sim.time_step)
 end
