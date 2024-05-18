@@ -87,19 +87,29 @@ function plot_hist(sim::Simulation)
         return
     end
     
-    min_length = minimum([length(robot.history) for robot in sim.robots])
+    min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
-        plot(Rectangle(sim.robots[1].history[i][1], sim.robots[1].history[i][2], sim.robots[1].history[i][3], sim.robots[1].width, sim.robots[1].length), 
-            color="orange",
+        scatter([sim.robots[1].history[1, i]], [sim.robots[1].history[2, i]], 
             xlim = x_axis(border),
             ylim = y_axis(border),
+            shape = :circle,
+            color = :orange,
+            markersize = sim.robots[1].radius,
             legend = false)
+    # plot(sim.robots[1].history[i][1], [sim.robots[1].history[i][2]], 
+    #     markersize = sim.robots[1].radius,
+    #     color="orange",
+    #     xlim = x_axis(border),
+    #     ylim = y_axis(border),
+    #     legend = false
+    #     )
 
-        if (length(sim.robots) > 1)
-            for j in 2:length(sim.robots)
-                plot!(Rectangle(sim.robots[j].history[i][1], sim.robots[j].history[i][2], sim.robots[j].history[i][3], sim.robots[j].width, sim.robots[j].length))
-            end
+    if (length(sim.robots) > 1)
+        for j in 2:length(sim.robots)
+            scatter!([sim.robots[j].history[1, i]], [sim.robots[j].history[2, i]], 
+            markersize = sim.robots[j].radius)
         end
+    end
     end
     gif(anim, fps=10)
 end
