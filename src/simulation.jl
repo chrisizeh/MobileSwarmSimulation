@@ -14,8 +14,7 @@ mutable struct Simulation
     num_grid::Int64
 
     grid::Array{Array{Robot}}
-    grid_step_x::Float64
-    grid_step_y::Float64
+    grid_step::Array{Float64}
 
     function Simulation(robots, border; check=false, dist=nothing, time_step=1, num_grid=5)
         if isnothing(dist)
@@ -24,6 +23,8 @@ mutable struct Simulation
 
         grid_step_x = (border.right - border.left)/num_grid
         grid_step_y = (border.top - border.bottom)/num_grid
+        grid_step = [grid_step_x, grid_step_y]
+
         grid = Array{Vector{Robot}}(undef, num_grid, num_grid)
 
         for i in eachindex(grid)
@@ -31,12 +32,12 @@ mutable struct Simulation
         end
 
         for robot in robots
-            idX = Int64(ceil((robot.pos_x - border.left) /  grid_step_x))
-            idY = Int64(ceil((robot.pos_y - border.bottom) /  grid_step_y))
+            idX = Int64(ceil((robot.pos[1] - border.left) /  grid_step[1]))
+            idY = Int64(ceil((robot.pos[2] - border.bottom) /  grid_step[2]))
             push!(grid[idX, idY], robot)
         end
 
-        new(robots, border, check, dist, time_step, num_grid, grid, grid_step_x, grid_step_y)
+        new(robots, border, check, dist, time_step, num_grid, grid, grid_step)
     end
 
 end
@@ -44,13 +45,13 @@ end
 
 function update!(sim::Simulation)
     for robot in sim.robots
-        idX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
-        idY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
+        idX = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
+        idY = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
 
         move!(robot, sim.time_step, sim.check_border, sim.border)
 
-        newIdX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
-        newIdY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
+        newIdX = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
+        newIdY = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
 
         if(idX != newIdX || idY != newIdY)
             @info "move $(robot.id) from $(idX) $(idY) to $(newIdX) $(newIdY)"
@@ -73,13 +74,13 @@ function update!(sim::Simulation)
 
             if(length(robs) > 1)
                 for robot in sim.grid[row, col]
-                    idX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
-                    idY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
+                    idX = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
+                    idY = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
 
                     move_intersection!(robot, robs)
 
-                    newIdX = min(sim.num_grid, max(1, Int64(ceil((robot.pos_x - sim.border.left) /  sim.grid_step_x))))
-                    newIdY = min(sim.num_grid, max(1, Int64(ceil((robot.pos_y - sim.border.bottom) /  sim.grid_step_y))))
+                    newIdX = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
+                    newIdY = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
 
                     if(idX != newIdX || idY != newIdY)
                         @info "move $(robot.id) from $(idX) $(idY) to $(newIdX) $(newIdY)"
