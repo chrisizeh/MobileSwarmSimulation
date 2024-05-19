@@ -104,15 +104,20 @@ function plot_hist(sim::Simulation; speedup=1)
     if(length(sim.robots) == 0)
         return
     end
+
+    x = x_axis(border)
+    y = y_axis(border)
+    w = width(border)
+    h = height(border)
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
         plot(Circle(sim.robots[1].history[:, i], sim.robots[1].radius), 
-            xlim = x_axis(border),
-            ylim = y_axis(border),
+            xlim = x,
+            ylim = y,
             color = :orange,
             legend = false,
-            size = (width(border), height(border)))
+            size = (w, h))
 
     if (length(sim.robots) > 1)
         for j in 2:length(sim.robots)

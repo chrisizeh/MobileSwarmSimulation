@@ -9,11 +9,11 @@ struct Border
 end
 
 function width(border::Border)
-    return (border.right - border.left) * 5
+    return  500
 end
 
 function height(border::Border)
-    return (border.top - border.bottom) * 5
+    return (border.top - border.bottom)/(border.right - border.left) * 500
 end
 
 function x_axis(border::Border)
