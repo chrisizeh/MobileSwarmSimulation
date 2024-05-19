@@ -80,7 +80,7 @@ Move the robot for a specified amount of time. If checkBorder is False, the robo
 - `checkBorder::Bool`: Flag, indicating if the border can be crossed
 - `border::Border`: Border of movement area
 """
-function move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border)
+function move!(robot::Robot, sec::Float64; checkBorder::Bool=false, border::Border=nothing)
 	append!(robot.history, [robot.pos[1], robot.pos[2], robot.deg])
 
 	mean_vel = sum(robot.vel) / 2
@@ -100,7 +100,7 @@ function move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border)
 		new_deg = robot.deg
 	end
 
-	if checkBorder
+	if checkBorder & !isnothing(border)
 		new_pos = check_border(robot, border, new_pos)
 	end
 
@@ -156,7 +156,7 @@ function move_intersection!(robot::Robot, robots::Array{Robot}=[])
 			dist = sqrt(abs(other.pos[1] - robot.pos[1])^2 + abs(other.pos[2] - robot.pos[2])^2)
 
 			if(dist < robot.radius + other.radius)
-				robot.pos = fix_intersection(robot, other)
+				robot.pos = check_intersection(robot, other)
 			end
         end
     end
@@ -189,7 +189,7 @@ function check_intersection(robot::Robot, other_robot::Robot)
 		deg = -acos(x / dist)
 	end
 
-	new_pos = []
+	new_pos = [0., 0.]
 	new_pos[1] = robot.pos[1] - cos(deg) * (r - dist)
 	new_pos[2] = robot.pos[2] - sin(deg) * (r - dist)
 
