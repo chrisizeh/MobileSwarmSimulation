@@ -14,7 +14,7 @@ end
 
 
 """
-   Rectangle Obstacle
+    Rectangle Obstacle
 
     Obstacle with center point and width and height.
 """
@@ -26,11 +26,13 @@ end
 
 
 """
-   Border
+    Area
 
-   Structure for storing the borders of an area in a two dimensional euclidean space in.
+   Area with borders in a two dimensional euclidean space and none to multiple obstacles.
 """
-struct Border
+struct Area
+
+    # Border
     left::Int64
     right::Int64
     bottom::Int64
@@ -38,7 +40,7 @@ struct Border
 
     obstacles::Array{Obstacle}
 
-    function Border(left, right, bottom, top; obstacles=[]) 
+    function Area(left, right, bottom, top; obstacles=[]) 
         if (left >= right || bottom >= top)
             error("incorrect border")
         else
@@ -49,42 +51,42 @@ end
 
 
 """
-ratio(border::Border) -> Float64
+ratio(area::Area) -> Float64
 
 Calculates the ratio of width to height of the area.
 
 # Arguments
-- `border::Border`: Border to calculate the ration of
+- `area::Area`: Area to calculate the ration of
 
 # Returns
 - `Float64`: Ratio
 """
-function ratio(border::Border)
-    return (border.top - border.bottom)/(border.right - border.left)
+function ratio(area::Area)
+    return (area.top - area.bottom)/(area.right - area.left)
 end
 
 """
-x_axis(border::Border) -> Tuple{Int64, Int64}
+x_axis(area::Area) -> Tuple{Int64, Int64}
 
-Returns the borders on the x-axis as Tuple
+Returns the areas on the x-axis as Tuple
 
 # Arguments
-- `border::Border`: Border to return the values from
+- `area::Area`: Area to return the values from
 """
-function x_axis(border::Border)
-    return (border.left, border.right)
+function x_axis(area::Area)
+    return (area.left, area.right)
 end
 
 """
-y_axis(border::Border) -> Tuple{Int64, Int64}
+y_axis(area::Area) -> Tuple{Int64, Int64}
 
-Returns the borders on the y-axis as Tuple
+Returns the areas on the y-axis as Tuple
 
 # Arguments
-- `border::Border`: Border to return the values from
+- `area::Area`: Area to return the values from
 """
-function y_axis(border::Border)
-    return (border.bottom, border.top)
+function y_axis(area::Area)
+    return (area.bottom, area.top)
 end
 
 

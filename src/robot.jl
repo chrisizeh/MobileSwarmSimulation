@@ -68,7 +68,7 @@ end
 
 
 """
-move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border) -> None
+move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Area) -> None
 
 Move the robot for a specified amount of time. If checkBorder is False, the robot can exit the area.
 	The movement with different velocities for both tires is calculated using the paper
@@ -78,9 +78,9 @@ Move the robot for a specified amount of time. If checkBorder is False, the robo
 - `robot::Robot`: Robot to update the value from
 - `sec::Float64`: Timeframe to move the robot
 - `checkBorder::Bool`: Flag, indicating if the border can be crossed
-- `border::Border`: Border of movement area
+- `border::Area`: Border of movement area
 """
-function move!(robot::Robot, sec::Float64; checkBorder::Bool=false, border::Border=nothing)
+function move!(robot::Robot, sec::Float64; checkBorder::Bool=false, border::Area=nothing)
 	append!(robot.history, [robot.pos[1], robot.pos[2], robot.deg])
 
 	mean_vel = sum(robot.vel) / 2
@@ -110,20 +110,20 @@ end
 
 
 """
-check_border(robot::Robot, border::Border, new_pos::Array{Float64}) -> Array{Float64}
+check_border(robot::Robot, border::Area, new_pos::Array{Float64}) -> Array{Float64}
 
 To prevent crossing the border, intersections are solved by repositioning the robot
 	in the corresponding axis directly on the border, pos = border - robot radius.
 
 # Arguments
 - `robot::Robot`: Robot to check for border intersections
-- `border::Border`: Border to check for intersection
+- `border::Area`: Border of area to check for intersection
 - `new_pos::Array{Float64}`: Current position of robot after movement update
 
 # Returns
 - `Array{Float64}`: New position of robot after fixing intersections
 """
-function check_border(robot::Robot, border::Border, new_pos::Array{Float64})
+function check_border(robot::Robot, border::Area, new_pos::Array{Float64})
 	if (new_pos[1] + robot.radius > border.right)
 		new_pos[1] = border.right - robot.radius
 	elseif (new_pos[1] - robot.radius < border.left)

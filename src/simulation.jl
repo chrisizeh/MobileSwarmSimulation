@@ -12,7 +12,7 @@ include("area.jl")
 
 # Fields
 - `robots::Array{Robot}`: List of robots active in simulation
-- `border::Border`: The border of the simulation area
+- `area::Area`: The area of the simulation area
 - `open_area::Bool`: Flag, if the robots can leave the area
 - `time_step::Float64`: Current time step of the simulation
 - `num_grid::Int64`: Number of grids per axis to split the simulation to
@@ -21,7 +21,7 @@ include("area.jl")
 """
 mutable struct Simulation 
     robots::Array{Robot}
-    border::Border
+    area::Area
     open_area::Bool
 
     time_step::Float64
@@ -30,9 +30,9 @@ mutable struct Simulation
     grid::Array{Array{Union{Robot, Obstacle}}}
     grid_step::Tuple{Float64, Float64}
 
-    function Simulation(robots, border; open_area=false, time_step=1, num_grid=5)
-        grid_step_x = (border.right - border.left)/num_grid
-        grid_step_y = (border.top - border.bottom)/num_grid
+    function Simulation(robots, area; open_area=false, time_step=1, num_grid=5)
+        grid_step_x = (area.right - area.left)/num_grid
+        grid_step_y = (area.top - area.bottom)/num_grid
         grid_step = (grid_step_x, grid_step_y)
 
         grid = Array{Vector{Union{Robot, Obstacle}}}(undef, num_grid, num_grid)
@@ -42,18 +42,18 @@ mutable struct Simulation
         end
 
         for robot in robots
-            id_x = Int64(ceil((robot.pos[1] - border.left) /  grid_step[1]))
-            id_y = Int64(ceil((robot.pos[2] - border.bottom) /  grid_step[2]))
+            id_x = Int64(ceil((robot.pos[1] - area.left) /  grid_step[1]))
+            id_y = Int64(ceil((robot.pos[2] - area.bottom) /  grid_step[2]))
             push!(grid[id_x, id_y], robot)
         end
 
-        for obstacle in border.obstacles
-            id_x = Int64(ceil((obstacle.center[1] - border.left) /  grid_step[1]))
-            id_y = Int64(ceil((obstacle.center[2] - border.bottom) /  grid_step[2]))
+        for obstacle in area.obstacles
+            id_x = Int64(ceil((obstacle.center[1] - area.left) /  grid_step[1]))
+            id_y = Int64(ceil((obstacle.center[2] - area.bottom) /  grid_step[2]))
             push!(grid[id_x, id_y], obstacle)
         end
 
-        new(robots, border, open_area, time_step, num_grid, grid, grid_step)
+        new(robots, area, open_area, time_step, num_grid, grid, grid_step)
     end
 
 end
@@ -72,13 +72,13 @@ In the next step the intersections between robots are checked and fixed. Again, 
 """
 function update!(sim::Simulation)
     for robot in sim.robots
-        id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
-        id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
+        id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.area.left) /  sim.grid_step[1]))))
+        id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.area.bottom) /  sim.grid_step[2]))))
 
-        move!(robot, sim.time_step; checkBorder=!sim.open_area, border=sim.border)
+        move!(robot, sim.time_step; checkBorder=!sim.open_area, border=sim.area)
 
-        new_id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
-        new_id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
+        new_id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.area.left) /  sim.grid_step[1]))))
+        new_id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.area.bottom) /  sim.grid_step[2]))))
 
         if(id_x != new_id_x || id_y != new_id_y)
             deleteat!(sim.grid[id_x, id_y], findfirst(==(robot), sim.grid[id_x, id_y]))
@@ -101,13 +101,13 @@ function update!(sim::Simulation)
             if(length(robs) > 1)
                 for robot in sim.grid[row, col]
                     if (typeof(robot) == Robot)
-                        id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
-                        id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
+                        id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.area.left) /  sim.grid_step[1]))))
+                        id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.area.bottom) /  sim.grid_step[2]))))
 
                         move_intersection!(robot, robs)
 
-                        new_id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
-                        new_id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
+                        new_id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.area.left) /  sim.grid_step[1]))))
+                        new_id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.area.bottom) /  sim.grid_step[2]))))
 
                         if(id_x != new_id_x || id_y != new_id_y)
                             deleteat!(sim.grid[id_x, id_y], findfirst(==(robot), sim.grid[id_x, id_y]))
@@ -144,10 +144,10 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0)
         return
     end
 
-    x = x_axis(border)
-    y = y_axis(border)
+    x = x_axis(area)
+    y = y_axis(area)
     w = 500
-    h = ratio(border) * 500
+    h = ratio(area) * 500
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
@@ -164,7 +164,7 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0)
             end
         end
 
-        for obstacle in sim.border.obstacles
+        for obstacle in sim.area.obstacles
             plot!(obstacle)
         end
     end
