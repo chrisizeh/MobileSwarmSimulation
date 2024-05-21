@@ -3,27 +3,36 @@ using Plots
 include("robot.jl")
 include("area.jl")
 
+"""
+   Simulation
 
+   Simulation of multiple robots on area with borders.
+   The area is split into a grid of neighborhoods to speed up the intersection checking.
+
+# Fields
+- `robots::Array{Robot}`: List of robots active in simulation
+- `border::Border`: The border of the simulation area
+- `open_area::Bool`: Flag, if the robots can leave the area
+- `time_step::Float64`: Current time step of the simulation
+- `num_grid::Int64`: Number of grids per axis to split the simulation to
+- `grid::Array{Array{Robot}}`: Grid of the simulation with robots in the appropriate cell
+- `grid_step::Array{Float64}`: Size of each cell per axis
+"""
 mutable struct Simulation 
     robots::Array{Robot}
     border::Border
     open_area::Bool
 
-    sensoric_distance::Float64
     time_step::Float64
     num_grid::Int64
 
     grid::Array{Array{Robot}}
     grid_step::Array{Float64}
 
-    function Simulation(robots, border; open_area=false, dist=nothing, time_step=1, num_grid=5)
-        if isnothing(dist)
-            dist = (border.right - border.left)/10
-        end
-
+    function Simulation(robots, border; open_area=false, time_step=1, num_grid=5)
         grid_step_x = (border.right - border.left)/num_grid
         grid_step_y = (border.top - border.bottom)/num_grid
-        grid_step = [grid_step_x, grid_step_y]
+        grid_step = (grid_step_x, grid_step_y)
 
         grid = Array{Vector{Robot}}(undef, num_grid, num_grid)
 
@@ -37,12 +46,23 @@ mutable struct Simulation
             push!(grid[id_x, id_y], robot)
         end
 
-        new(robots, border, open_area, dist, time_step, num_grid, grid, grid_step)
+        new(robots, border, open_area, time_step, num_grid, grid, grid_step)
     end
 
 end
 
 
+"""
+update!(sim::Simulation) -> None
+
+Perform one time step of the simulation.
+Each robots moves for one timestep ignoring other robots and only checking for the border, if it is not an open area.
+Afterwards moving the robots location on the grid is updated.
+In the next step the intersections between robots are checked and fixed. Again, the position on the grid for the robots are updated.
+
+# Arguments
+- `sim::Simulation`: Simulation to perform the update on
+"""
 function update!(sim::Simulation)
     for robot in sim.robots
         id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
@@ -99,8 +119,18 @@ function Circle(pos, radius)
 end
 
 
-# Speedup in percentage (1 = 100%)
-function plot_hist(sim::Simulation; speedup=1)
+"""
+plot_hist(sim::Simulation; speedup:Float64) -> None
+
+Plot the movements of all robots over the entire timespan.
+
+# Arguments
+- `sim::Simulation`: Simulation to plot the simulation from
+
+# Keywords
+- `speedup:Float64=1.0`: Speed up or Slow down framerate by percentage
+"""
+function plot_hist(sim::Simulation; speedup:Float64=1.0)
     if(length(sim.robots) == 0)
         return
     end
