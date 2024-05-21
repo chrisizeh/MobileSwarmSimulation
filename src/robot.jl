@@ -150,13 +150,15 @@ Robots cannot move on top of each other. For each robot, the distant to each oth
 - `robot::Robot`: Robot to move to prevent intersection
 - `robots::Array{Robot}`: List of robots to check for intersection
 """
-function move_intersection!(robot::Robot, robots::Array{Robot}=[])
+function move_intersection!(robot::Robot, robots::Array{Union{Robot, Obstacle}}=[])
     for other in robots
-        if(robot.id != other.id)
-			dist = sqrt(abs(other.pos[1] - robot.pos[1])^2 + abs(other.pos[2] - robot.pos[2])^2)
+        if((typeof(other) == Robot))
+			if(robot.id != other.id)
+				dist = sqrt(abs(other.pos[1] - robot.pos[1])^2 + abs(other.pos[2] - robot.pos[2])^2)
 
-			if(dist < robot.radius + other.radius)
-				robot.pos = check_intersection(robot, other)
+				if(dist < robot.radius + other.radius)
+					robot.pos = check_intersection(robot, other)
+				end
 			end
         end
     end

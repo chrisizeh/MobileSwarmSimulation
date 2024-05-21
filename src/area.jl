@@ -1,3 +1,30 @@
+import Plots.plot!
+
+abstract type Obstacle end
+
+"""
+   Round Obstacle
+
+    Obstacle with center point and radius.
+"""
+struct Round_Obstacle <: Obstacle
+    center::Array{Float64}
+    radius::Float64
+end
+
+
+"""
+   Rectangle Obstacle
+
+    Obstacle with center point and width and height.
+"""
+struct Rectangle_Obstacle <: Obstacle
+    center::Array{Float64}
+    width::Float64
+    height::Float64
+end
+
+
 """
    Border
 
@@ -9,7 +36,15 @@ struct Border
     bottom::Int64
     top::Int64
 
-    Border(left, right, bottom, top) = left >= right || bottom >= top ? error("incorrect border") : new(left, right, bottom, top)
+    obstacles::Array{Obstacle}
+
+    function Border(left, right, bottom, top; obstacles=[]) 
+        if (left >= right || bottom >= top)
+            error("incorrect border")
+        else
+            new(left, right, bottom, top, obstacles)
+        end
+    end
 end
 
 
@@ -50,4 +85,33 @@ Returns the borders on the y-axis as Tuple
 """
 function y_axis(border::Border)
     return (border.bottom, border.top)
+end
+
+
+function Circle(center::Array{Float64}, radius::Float64)
+    ang = range(0, 2π, length = 25)
+    return Shape(radius * cos.(ang) .+ center[1], radius * sin.(ang) .+ center[2])
+end
+
+
+function Rectangle(center::Array{Float64}, width::Float64, height::Float64)
+    return Shape(center[1] .+ [-width/2, width/2, width/2, -width/2], center[2] .+ [-height/2, -height/2, height/2, height/2])
+end
+
+
+"""
+plot!(obstacle::Obstacle) -> None
+
+Plotting obstacle according to its shape
+
+# Arguments
+- `obstacle::Obstacle`: Obstacle to plot
+"""
+function plot!(obstacle::Round_Obstacle)
+    plot!(Circle(obstacle.center, obstacle.radius), color=1)
+end
+
+
+function plot!(obstacle::Rectangle_Obstacle)
+    plot!(Rectangle(obstacle.center, obstacle.width, obstacle.height), color=1)
 end

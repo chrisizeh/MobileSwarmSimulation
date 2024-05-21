@@ -8,6 +8,7 @@ include("area.jl")
 
    Simulation of multiple robots on area with borders.
    The area is split into a grid of neighborhoods to speed up the intersection checking.
+   Both robots and obstacles are placed in a cell according to its center point.
 
 # Fields
 - `robots::Array{Robot}`: List of robots active in simulation
@@ -26,7 +27,7 @@ mutable struct Simulation
     time_step::Float64
     num_grid::Int64
 
-    grid::Array{Array{Robot}}
+    grid::Array{Array{Union{Robot, Obstacle}}}
     grid_step::Tuple{Float64, Float64}
 
     function Simulation(robots, border; open_area=false, time_step=1, num_grid=5)
@@ -34,7 +35,7 @@ mutable struct Simulation
         grid_step_y = (border.top - border.bottom)/num_grid
         grid_step = (grid_step_x, grid_step_y)
 
-        grid = Array{Vector{Robot}}(undef, num_grid, num_grid)
+        grid = Array{Vector{Union{Robot, Obstacle}}}(undef, num_grid, num_grid)
 
         for i in eachindex(grid)
             grid[i] = []
@@ -44,6 +45,12 @@ mutable struct Simulation
             id_x = Int64(ceil((robot.pos[1] - border.left) /  grid_step[1]))
             id_y = Int64(ceil((robot.pos[2] - border.bottom) /  grid_step[2]))
             push!(grid[id_x, id_y], robot)
+        end
+
+        for obstacle in border.obstacles
+            id_x = Int64(ceil((obstacle.center[1] - border.left) /  grid_step[1]))
+            id_y = Int64(ceil((obstacle.center[2] - border.bottom) /  grid_step[2]))
+            push!(grid[id_x, id_y], obstacle)
         end
 
         new(robots, border, open_area, time_step, num_grid, grid, grid_step)
@@ -93,17 +100,19 @@ function update!(sim::Simulation)
 
             if(length(robs) > 1)
                 for robot in sim.grid[row, col]
-                    id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
-                    id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
+                    if (typeof(robot) == Robot)
+                        id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
+                        id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
 
-                    move_intersection!(robot, robs)
+                        move_intersection!(robot, robs)
 
-                    new_id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
-                    new_id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
+                        new_id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.border.left) /  sim.grid_step[1]))))
+                        new_id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.border.bottom) /  sim.grid_step[2]))))
 
-                    if(id_x != new_id_x || id_y != new_id_y)
-                        deleteat!(sim.grid[id_x, id_y], findfirst(==(robot), sim.grid[id_x, id_y]))
-                        push!(sim.grid[min(sim.num_grid, max(1, new_id_x)), min(sim.num_grid, max(1, new_id_y))], robot)
+                        if(id_x != new_id_x || id_y != new_id_y)
+                            deleteat!(sim.grid[id_x, id_y], findfirst(==(robot), sim.grid[id_x, id_y]))
+                            push!(sim.grid[min(sim.num_grid, max(1, new_id_x)), min(sim.num_grid, max(1, new_id_y))], robot)
+                        end
                     end
                 end
             end
@@ -112,7 +121,7 @@ function update!(sim::Simulation)
 end
 
 
-function Circle(pos, radius)
+function robot_Shape(pos::Array{Float64}, radius::Float32)
     ang = range(0, 2π, length = 25)
     front = range(-pi/4 + pos[3], pi/4 + pos[3], length = 5)
     return [Shape(radius * cos.(ang) .+ pos[1], radius * sin.(ang) .+ pos[2]), Shape(radius * cos.(front) .+ pos[1], radius * sin.(front) .+ pos[2])]
@@ -142,18 +151,22 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0)
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
-        plot(Circle(sim.robots[1].history[:, i], sim.robots[1].radius), 
+        plot(robot_Shape(Array(sim.robots[1].history[:, i]), sim.robots[1].radius), 
             xlim = x,
             ylim = y,
-            color = :orange,
+            color = 2,
             legend = false,
             size = (w, h))
 
-    if (length(sim.robots) > 1)
-        for j in 2:length(sim.robots)
-            plot!(Circle(sim.robots[j].history[:, i], sim.robots[j].radius), color=j)
+        if (length(sim.robots) > 1)
+            for j in 2:length(sim.robots)
+                plot!(robot_Shape(Array(sim.robots[j].history[:, i]), sim.robots[j].radius), color=j+1)
+            end
         end
-    end
+
+        for obstacle in sim.border.obstacles
+            plot!(obstacle)
+        end
     end
     gif(anim, fps=speedup/sim.time_step)
 end
