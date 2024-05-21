@@ -164,7 +164,7 @@ end
 
 
 """
-check_intersection(robot::Robot, other_robot::Robot) -> None
+check_intersection(robot::Robot, other_robot::Robot) -> Array{Float64}
 
 To solve the intersection, the robot is moved away from the other robot on the vector
 	combining both center points.
