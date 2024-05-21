@@ -55,7 +55,7 @@ end
 
 
 """
-stop(robot::Robot)
+stop(robot::Robot) -> None
 
 Reset the speed of both tires to 0.
 
@@ -68,7 +68,7 @@ end
 
 
 """
-move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border)
+move!(robot::Robot, sec::Float64, checkBorder::Bool, border::Border) -> None
 
 Move the robot for a specified amount of time. If checkBorder is False, the robot can exit the area.
 	The movement with different velocities for both tires is calculated using the paper
@@ -110,7 +110,7 @@ end
 
 
 """
-check_border(robot::Robot, border::Border, new_pos::Array{Float64})
+check_border(robot::Robot, border::Border, new_pos::Array{Float64}) -> Array{Float64}
 
 To prevent crossing the border, intersections are solved by repositioning the robot
 	in the corresponding axis directly on the border, pos = border - robot radius.
@@ -141,7 +141,7 @@ end
 
 
 """
-move_intersection!(robot::Robot, robots::Array{Robot}=[])
+move_intersection!(robot::Robot, robots::Array{Robot}=[]) -> None
 
 Robots cannot move on top of each other. For each robot, the distant to each other is checked.
 	If the distance iis less than the radii combined, robot is moved.
@@ -164,7 +164,7 @@ end
 
 
 """
-check_intersection(robot::Robot, other_robot::Robot)
+check_intersection(robot::Robot, other_robot::Robot) -> None
 
 To solve the intersection, the robot is moved away from the other robot on the vector
 	combining both center points.
