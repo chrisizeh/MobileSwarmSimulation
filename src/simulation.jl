@@ -16,7 +16,7 @@ include("area.jl")
 - `time_step::Float64`: Current time step of the simulation
 - `num_grid::Int64`: Number of grids per axis to split the simulation to
 - `grid::Array{Array{Robot}}`: Grid of the simulation with robots in the appropriate cell
-- `grid_step::Array{Float64}`: Size of each cell per axis
+- `grid_step::Tuple{Float64, Float64}`: Size of each cell per axis
 """
 mutable struct Simulation 
     robots::Array{Robot}
@@ -27,7 +27,7 @@ mutable struct Simulation
     num_grid::Int64
 
     grid::Array{Array{Robot}}
-    grid_step::Array{Float64}
+    grid_step::Tuple{Float64, Float64}
 
     function Simulation(robots, border; open_area=false, time_step=1, num_grid=5)
         grid_step_x = (border.right - border.left)/num_grid
@@ -130,7 +130,7 @@ Plot the movements of all robots over the entire timespan.
 # Keywords
 - `speedup:Float64=1.0`: Speed up or Slow down framerate by percentage
 """
-function plot_hist(sim::Simulation; speedup:Float64=1.0)
+function plot_hist(sim::Simulation; speedup::Float64=1.0)
     if(length(sim.robots) == 0)
         return
     end

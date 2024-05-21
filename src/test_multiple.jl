@@ -24,14 +24,13 @@ robot1 = Robot(0; radius=5, pos=[-5, 5], deg=-pi/7, vel=[5, 5])
 robot2 = Robot(1; radius=5, pos=[3, -5], deg=pi/8, vel=[5, 5])
 
 robots = [robot1, robot2]
-sim2 = Simulation(robots, border; open_area=false, dist=10, time_step=0.05, num_grid=5)
+sim2 = Simulation(robots, border; open_area=false, time_step=0.05, num_grid=5)
 
 for i in 1:200
     update!(sim2)
 end
 
 plot_hist(sim2; speedup=1.5)
-
 
 
 # 10 robots together with random velocities
