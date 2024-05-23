@@ -152,15 +152,7 @@ Robots cannot move on top of each other. For each robot, the distant to each oth
 """
 function move_intersection!(robot::Robot, robots::Array{Union{Robot, Obstacle}}=[])
     for other in robots
-        if((typeof(other) == Robot))
-			if(robot.id != other.id)
-				dist = sqrt(abs(other.pos[1] - robot.pos[1])^2 + abs(other.pos[2] - robot.pos[2])^2)
-
-				if(dist < robot.radius + other.radius)
-					robot.pos = check_intersection(robot, other)
-				end
-			end
-        end
+        robot.pos = check_intersection(robot, other)
     end
 end
 
@@ -179,21 +171,55 @@ To solve the intersection, the robot is moved away from the other robot on the v
 - `Array{Float64}`: New position of robot after fixing intersection
 """
 function check_intersection(robot::Robot, other_robot::Robot)
-	x = other_robot.pos[1] - robot.pos[1]
-	y = other_robot.pos[2] - robot.pos[2]
-
 	dist = sqrt(abs(other_robot.pos[1] - robot.pos[1])^2 + abs(other_robot.pos[2] - robot.pos[2])^2)
 	r = other_robot.radius + robot.radius
 
-	if (y >= 0)
-		deg = acos(x / dist)
-	else
-		deg = -acos(x / dist)
+	if((robot.id != other_robot.id) & (dist < r))
+		x = other_robot.pos[1] - robot.pos[1]
+		y = other_robot.pos[2] - robot.pos[2]
+
+		if (y >= 0)
+			deg = acos(x / dist)
+		else
+			deg = -acos(x / dist)
+		end
+
+		new_pos = [0., 0.]
+		new_pos[1] = robot.pos[1] - cos(deg) * (r - dist)
+		new_pos[2] = robot.pos[2] - sin(deg) * (r - dist)
+
+		return new_pos
 	end
 
-	new_pos = [0., 0.]
-	new_pos[1] = robot.pos[1] - cos(deg) * (r - dist)
-	new_pos[2] = robot.pos[2] - sin(deg) * (r - dist)
+	return robot.pos
+end
 
-	return new_pos
+
+"""
+check_intersection(robot::Robot, obstacle::Obstacle) -> Array{Float64}
+
+Check if the robots intersect.
+To solve the intersection, the robot is moved away from the other robot on the vector
+	combining both center points.
+
+# Arguments
+- `robot::Robot`: Robot to move to prevent intersection
+- `other_robot::Robot`: Other Robot, which is part of the intersection
+
+# Returns
+- `Array{Float64}`: New position of robot after fixing intersection
+"""
+function check_intersection(robot::Robot, obstacle::Obstacle)
+	vec = intersect(obstacle, robot.pos, robot.radius)
+
+	if(abs(vec[1]) > 0 || abs(vec[2]) > 0)
+
+		new_pos = [0., 0.]
+		new_pos[1] = robot.pos[1] - vec[1]
+		new_pos[2] = robot.pos[2] - vec[2]
+
+		return new_pos
+	end
+
+	return robot.pos
 end

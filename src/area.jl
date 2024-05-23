@@ -90,6 +90,122 @@ function y_axis(area::Area)
 end
 
 
+"""
+width(obstacle::Obstacle) -> Float64
+
+Calculates the width of the obstacle
+
+# Arguments
+- `obstacle::Obstacle`: Obstacle to calculate the width of
+
+# Returns
+- `Float64`: width
+"""
+function width(obstacle::Round_Obstacle)
+    return obstacle.radius * 2
+end
+
+function width(obstacle::Rectangle_Obstacle)
+    return obstacle.width
+end
+
+
+"""
+height(obstacle::Obstacle) -> Float64
+
+Calculates the height of the obstacle
+
+# Arguments
+- `obstacle::Obstacle`: Obstacle to calculate the height of
+
+# Returns
+- `Float64`: height
+"""
+function height(obstacle::Round_Obstacle)
+    return obstacle.radius * 2
+end
+
+function height(obstacle::Rectangle_Obstacle)
+    return obstacle.height
+end
+
+
+"""
+intersect(obstacle::Obstacle, center::Array{Float64}, radius::Float64) -> Array{Float64}
+
+Calculate if a circle is intersecting with the obstacle.
+    If yes, the intersecting vector is returned.
+    If not, a zero vector is returned.
+
+# Arguments
+- `obstacle::Obstacle`: Obstacle to check for intersection
+- `center::Array{Float64}`: Center point of circle
+- `radius::Float32`: radius of circle
+
+# Returns
+- `Array{Float64}`: Vector with length and direction of intersection
+"""
+function intersect(obstacle::Round_Obstacle, center::Array{Float64}, radius::Float32)
+    dist = sqrt(abs(obstacle.center[1] - center[1])^2 + abs(obstacle.center[2] - center[2])^2)
+	r = obstacle.radius + radius
+
+	if (dist < r)
+        x = obstacle.center[1] - center[1]
+		y = obstacle.center[2] - center[2]
+
+        deg = acos(x / dist)
+		if (y < 0)
+			deg = -deg
+		end
+
+		return [cos(deg) * (r - dist), sin(deg) * (r - dist)]
+    else
+        return [0., 0.]
+    end
+end
+
+
+function intersect(obstacle::Rectangle_Obstacle, center::Array{Float64}, radius::Float32)
+    rw = obstacle.width/2 + radius
+    rh = obstacle.height/2 + radius
+
+    x = obstacle.center[1] - center[1]
+    y = obstacle.center[2] - center[2]
+
+    """
+      edge case | border case
+             ---|-------- 
+    border case | obstacle
+    """
+
+    # Check if point in interesting area around obstacle
+    if (abs(x) < rw && abs(y) < rh)
+
+        # Check if point in border case
+        if(abs(x) < obstacle.width/2 || abs(y) < obstacle.height/2)
+            if ((rh - abs(y)) < (rw - abs(x)))
+                return [0., sign(y) * (rh - abs(y))]
+            else
+                return [sign(x) * (rw - abs(x)), 0.]
+            end     
+        else
+            edge = [obstacle.center[1] - sign(x) * obstacle.width/2, obstacle.center[2] - sign(y) * obstacle.height/2]
+            dist = sqrt((edge[1] - center[1])^2 + (edge[2] - center[2])^2)
+
+            # Check if point in edge case
+            if (dist < radius)
+                deg = acos((edge[1] - center[1]) / dist)
+                if ((edge[2] - center[2]) < 0)
+                    deg = -deg
+                end
+                return [cos(deg) * (radius - dist), sin(deg) * (radius - dist)]
+            end
+        end
+    end
+    return [0., 0.]
+end
+
+
 function Circle(center::Array{Float64}, radius::Float64)
     ang = range(0, 2π, length = 25)
     return Shape(radius * cos.(ang) .+ center[1], radius * sin.(ang) .+ center[2])

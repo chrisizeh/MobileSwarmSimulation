@@ -51,6 +51,30 @@ mutable struct Simulation
             id_x = Int64(ceil((obstacle.center[1] - area.left) /  grid_step[1]))
             id_y = Int64(ceil((obstacle.center[2] - area.bottom) /  grid_step[2]))
             push!(grid[id_x, id_y], obstacle)
+
+            if (width(obstacle) > grid_step[1])
+                id_x1 = Int64(ceil(((obstacle.center[1] - width(obstacle)/2) - area.left) / grid_step[1]))
+                id_x2 = Int64(ceil(((obstacle.center[1] + width(obstacle)/2) - area.left) / grid_step[1]))
+
+                if (id_x1 != id_x || id_x2 != id_x)
+                    for i in id_x1:2:id_x2
+                        push!(grid[i, id_y], obstacle)
+                    end
+                end
+            end
+
+            if (height(obstacle) > grid_step[2])
+                id_y1 = Int64(ceil(((obstacle.center[2] - height(obstacle)/2) - area.bottom) / grid_step[2]))
+                id_y2 = Int64(ceil(((obstacle.center[2] + height(obstacle)/2) - area.bottom) / grid_step[2]))
+
+                if (id_y1 != id_y || id_y2 != id_y)
+                    for i in id_y1:2:id_y2
+                        push!(grid[id_x, i], obstacle)
+                    end
+                end
+            end
+            
+            
         end
 
         new(robots, area, open_area, time_step, num_grid, grid, grid_step)
