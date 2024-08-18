@@ -19,16 +19,17 @@ mutable struct Robot
 
 	id::Int32
 	radius::Float32      # m
+	color::String
 
 	history::ElasticArray{Float64}	#ElasticArray, can expand on last dim
 	pos::Array{Float64}      # m [x, y]
 	deg::Float32        # degree from x-axis
 	vel::Array{Float32}   # m/s [left, right]
 
-	function Robot(id; radius=1, pos=[0, 0], deg=0, vel=[0,0]) 
+	function Robot(id; radius=1, pos=[0, 0], deg=0, vel=[0,0], color="#1abc9c") 
 		history = ElasticArray{Float64}(undef, 3, 0)
 
-		new(id, radius, history, pos, deg, vel)
+		new(id, radius, color, history, pos, deg, vel)
 	end
 end
 

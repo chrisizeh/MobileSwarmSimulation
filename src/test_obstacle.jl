@@ -1,11 +1,11 @@
 include("include_me.jl")
 
 # Two robots both having an obstacle in front
-robot1 = Robot(0; pos=[2, 3], vel=[1, 1])
+robot1 = Robot(0; pos=[2, 3], vel=[1, 1], color="#900C3F")
 robot2 = Robot(0; pos=[-5, -3], vel=[1, 1])
 
-round_o = Round_Obstacle([-1, -1], 3)
-square_o = Rectangle_Obstacle([7, 5], 2, 4)
+round_o = Round_Obstacle([-1.0, -1.0], 3.0)
+square_o = Rectangle_Obstacle([7.0, 5.0], 2.0, 4.0, color="#DAF7A6")
 
 area = Area(-10, 10, -10, 10; obstacles=[round_o, square_o])
 

@@ -178,13 +178,13 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0)
         plot(robot_Shape(Array(sim.robots[1].history[:, i]), sim.robots[1].radius), 
             xlim = x,
             ylim = y,
-            color = 2,
+            color = sim.robots[1].color,
             legend = false,
             size = (w, h))
 
         if (length(sim.robots) > 1)
             for j in 2:length(sim.robots)
-                plot!(robot_Shape(Array(sim.robots[j].history[:, i]), sim.robots[j].radius), color=j+1)
+                plot!(robot_Shape(Array(sim.robots[j].history[:, i]), sim.robots[j].radius), color=sim.robots[j].color)
             end
         end
 

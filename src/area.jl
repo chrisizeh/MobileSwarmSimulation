@@ -10,6 +10,12 @@ abstract type Obstacle end
 struct Round_Obstacle <: Obstacle
     center::Array{Float64}
     radius::Float64
+
+    color::String
+
+    function Round_Obstacle(center::Array{Float64}, radius::Float64; color::String="#FFC300")
+        new(center, radius, color)
+    end
 end
 
 
@@ -22,6 +28,12 @@ struct Rectangle_Obstacle <: Obstacle
     center::Array{Float64}
     width::Float64
     height::Float64
+
+    color::String
+
+    function Rectangle_Obstacle(center::Array{Float64}, width::Float64, height::Float64; color::String="#DAF7A6")
+        new(center, width, height, color)
+    end
 end
 
 
@@ -226,10 +238,10 @@ Plotting obstacle according to its shape
 - `obstacle::Obstacle`: Obstacle to plot
 """
 function plot!(obstacle::Round_Obstacle)
-    plot!(Circle(obstacle.center, obstacle.radius), color=1)
+    plot!(Circle(obstacle.center, obstacle.radius), color=obstacle.color)
 end
 
 
 function plot!(obstacle::Rectangle_Obstacle)
-    plot!(Rectangle(obstacle.center, obstacle.width, obstacle.height), color=1)
+    plot!(Rectangle(obstacle.center, obstacle.width, obstacle.height), color=obstacle.color)
 end
