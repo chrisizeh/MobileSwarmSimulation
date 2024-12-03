@@ -145,10 +145,32 @@ function update!(sim::Simulation)
 end
 
 
-function robot_Shape(pos::Array{Float64}, radius::Float32)
+function robot_Shape(robot::Robot, pos::Array{Float64}, radius::Float32)
     ang = range(0, 2π, length = 25)
     front = range(-pi/4 + pos[3], pi/4 + pos[3], length = 5)
-    return [Shape(radius * cos.(ang) .+ pos[1], radius * sin.(ang) .+ pos[2]), Shape(radius * cos.(front) .+ pos[1], radius * sin.(front) .+ pos[2])]
+
+    shapes = [Shape(radius * cos.(ang) .+ pos[1], radius * sin.(ang) .+ pos[2]), 
+            Shape(radius * cos.(front) .+ pos[1], radius * sin.(front) .+ pos[2])]
+
+    for sensor in robot.sensor_pos
+        sensor_deg = range(pos[3] + sensor[3] - robot.sensor_deg/2, 
+                        pos[3] + sensor[3] + robot.sensor_deg/2, length = 5)
+        
+        sensor_x = pos[1] .+ sensor[1] * cos(pos[3]) .- sensor[2] * sin(pos[3])
+        sensor_y = pos[2] .+ sensor[1] * sin(pos[3]) .+ sensor[2] * cos(pos[3])
+
+        x = robot.sensor_dist * cos.(sensor_deg) .+ sensor_x
+        y = robot.sensor_dist * sin.(sensor_deg) .+ sensor_y
+
+        append!(x, [sensor_x])
+        append!(y, [sensor_y])
+
+        append!(shapes, [Shape(radius/10 * cos.(ang) .+ sensor_x, radius/10 * sin.(ang) .+ sensor_y),
+        Shape(x, y)
+        ])
+    end
+
+    return shapes
 end
 
 
@@ -159,11 +181,13 @@ Plot the movements of all robots over the entire timespan.
 
 # Arguments
 - `sim::Simulation`: Simulation to plot the simulation from
+- `speedup::Float64`: Defining speedup for GIF
+- `showSensor::Bool`: Flag, indicating if the sensor range should be displayed
 
 # Keywords
 - `speedup:Float64=1.0`: Speed up or Slow down framerate by percentage
 """
-function plot_hist(sim::Simulation; speedup::Float64=1.0)
+function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false)
     if(length(sim.robots) == 0)
         return
     end
@@ -175,7 +199,7 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0)
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
-        plot(robot_Shape(Array(sim.robots[1].history[:, i]), sim.robots[1].radius), 
+        plot(robot_Shape(sim.robots[1], Array(sim.robots[1].history[:, i]), sim.robots[1].radius), 
             xlim = x,
             ylim = y,
             color = sim.robots[1].color,
@@ -184,7 +208,7 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0)
 
         if (length(sim.robots) > 1)
             for j in 2:length(sim.robots)
-                plot!(robot_Shape(Array(sim.robots[j].history[:, i]), sim.robots[j].radius), color=sim.robots[j].color)
+                plot!(robot_Shape(sim.robots[j], Array(sim.robots[j].history[:, i]), sim.robots[j].radius), color=sim.robots[j].color)
             end
         end
 
