@@ -1,4 +1,5 @@
 import Plots.plot!
+using Statistics
 
 abstract type Obstacle end
 
@@ -215,6 +216,43 @@ function intersect(obstacle::Rectangle_Obstacle, center::Array{Float64}, radius:
         end
     end
     return [0., 0.]
+end
+
+
+"""
+degree_to_border(obstacle::Round_Obstacle, center::Array{Float64}) -> Array{Float64}
+
+Calculate the degree to the border of the obstacle 90 degrees to the distance line.
+For the circle obstacle it is the same degree (+-).
+For the square obstacle the degree have to calculated differently (TODO).
+
+# Arguments
+- `obstacle::Obstacle`: Obstacle to check for intersection
+- `center::Array{Float64}`: Center point of circle
+
+# Returns
+- `Array{Float64}`: Degree to border in both directions
+"""
+function degree_to_border(obstacle::Round_Obstacle, center::Array{Float64})
+    dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
+
+    to_border = asin(obstacle.radius/dist)
+    return [to_border, -to_border]
+end
+
+# TODO: Implement and use for Sensoring!
+function degree_to_border(obstacle::Rectangle_Obstacle, center::Array{Float64})
+    dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
+    deg = [0., 0., 0., 0.]
+
+    for i in 1:2
+        for j in 1:2
+            x =   obstacle.center[1] + (-1)^i * obstacle.width/2 - center[1]
+            y =   obstacle.center[2] + (-1)^j * obstacle.height/2 - center[2]   
+            deg[(i-1)*i + j] = atan(y/x)
+        end
+    end
+    return [pi, -pi]
 end
 
 

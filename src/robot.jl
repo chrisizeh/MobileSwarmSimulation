@@ -234,7 +234,7 @@ To solve the intersection, the robot is moved away from the other robot on the v
 
 # Arguments
 - `robot::Robot`: Robot to move to prevent intersection
-- `other_robot::Robot`: Other Robot, which is part of the intersection
+- `obstacle::Obstacle`: Obstacle, which is part of the intersection
 
 # Returns
 - `Array{Float64}`: New position of robot after fixing intersection
@@ -291,12 +291,65 @@ function get_sensoric_data(robot::Robot, other_robot::Robot)
 				deg = -acos(x / dist)
 			end
 
-			if(abs(deg - (robot.deg + sensor[3])) < robot.sensor_deg/2)
-				sensor_data[i] = dist
+			to_border = asin(other_robot.radius/dist)
+			diff = deg - (robot.deg + sensor[3])
+
+			# Correct without abs?
+			opts = [diff, diff - to_border, diff + to_border]
+
+			if(minimum(opts) < robot.sensor_deg/2)
+				sensor_data[i] = dist - other_robot.radius
 			end
 
 		end
 	end
 	return sensor_data
+end
 
+
+"""
+get_sensoric_data(robot::Robot, obstacle::Obstacle) -> Array{Float64}
+
+Calculate for another robot if it's in the range of a sensors.
+If yes, return the distance to the sensor.
+If not, return 0 for this sensor.
+
+TODO: Improve rectangular obstacle by including border checking.
+
+# Arguments
+- `robot::Robot`: Robot to get the sensor data from
+- `obstacle::Obstacle`: Obstacle, which is to be checked
+
+# Returns
+- `Array{Float64}`: Array of distance for each sensor
+"""
+function get_sensoric_data(robot::Robot, obstacle::Obstacle)
+	sensor_data = Array{Float64}(undef, robot.sensor_num)
+	fill!(sensor_data, 0.0);
+
+	for i in 1:robot.sensor_num
+		sensor = robot.sensor_pos[i]
+
+		sensor_x = robot.pos[1] .+ sensor[1] * cos(robot.deg) .- sensor[2] * sin(robot.deg)
+		sensor_y = robot.pos[2] .+ sensor[1] * sin(robot.deg) .+ sensor[2] * cos(robot.deg)
+
+		vec = intersect(obstacle, [sensor_x, sensor_y], robot.sensor_dist)
+
+		if (sum(vec) > 0)
+			x = obstacle.center[1] - sensor_x
+			y = obstacle.center[2] - sensor_y
+			dist = sqrt(x^2 + y^2)
+
+			deg = atan(y/x)
+			to_border = degree_to_border(obstacle, robot.pos)
+			diff = deg - (robot.deg + sensor[3])
+			diff2 = atan(vec[2]/vec[1]) - (robot.deg + sensor[3])
+
+			opts = [diff, diff2, diff + to_border[1], diff + to_border[2]]
+			if(minimum(broadcast(abs, opts)) < robot.sensor_deg/2)
+				sensor_data[i] = robot.sensor_dist - sqrt(vec[1]^2 + vec[2]^2)
+			end
+		end
+	end
+	return sensor_data
 end
