@@ -236,7 +236,7 @@ For the square obstacle the degree have to calculated differently (TODO).
 function degree_to_border(obstacle::Round_Obstacle, center::Array{Float64})
     dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
 
-    to_border = asin(obstacle.radius/dist)
+    to_border = asin(min(obstacle.radius/dist, 1.))
     return [to_border, -to_border]
 end
 

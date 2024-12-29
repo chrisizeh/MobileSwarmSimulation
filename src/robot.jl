@@ -48,17 +48,20 @@ mutable struct Robot
 	sensor_num::Int64
 
 	sensor_pos::Array{Vector{Float64}}
+	NO_DIST_FOUND::Float32
 
-	function Robot(id; radius=1, pos=[0, 0], deg=0, vel=[0,0], color="#1abc9c", sensor_dist=3.0, sensor_deg=pi/4, sensor_num=3) 
+	function Robot(id; radius=1, pos=[0, 0], deg=0, vel=[0,0], color="#1abc9c", sensor_dist=3.0, sensor_deg=pi/4, sensor_num=3, spec=pi) 
 		history = ElasticArray{Float64}(undef, 3, 0)
 
 		sensor_pos = []
-		dist = pi / (sensor_num + 1)
+		dist = spec / (sensor_num + 1)
+		diff = pi/2 - spec/2
 		for i in 1:sensor_num
-			push!(sensor_pos, [radius * sin(i * dist), radius * cos(i * dist), pi/2 - i * dist])
+			push!(sensor_pos, [radius * sin(diff + i * dist), radius * cos(diff + i * dist), spec/2 - i * dist])
 		end
+		NO_DIST_FOUND = sensor_num * sensor_dist
 
-		new(id, radius, color, history, pos, deg, vel, sensor_dist, sensor_deg, sensor_num, sensor_pos)
+		new(id, radius, color, history, pos, deg, vel, sensor_dist, sensor_deg, sensor_num, sensor_pos, NO_DIST_FOUND)
 	end
 end
 
@@ -112,7 +115,6 @@ Move the robot for a specified amount of time. If checkBorder is False, the robo
 """
 function move!(robot::Robot, sec::Float64; checkBorder::Bool=false, border::Area=nothing)
 	append!(robot.history, [robot.pos[1], robot.pos[2], robot.deg])
-
 	mean_vel = sum(robot.vel) / 2
 
 	new_deg = 0.
@@ -174,7 +176,7 @@ end
 move_intersection!(robot::Robot, robots::Array{Robot}=[]) -> None
 
 Robots cannot move on top of each other. For each robot, the distant to each other is checked.
-	If the distance iis less than the radii combined, robot is moved.
+	If the distance is less than the radii combined, robot is moved.
 
 # Arguments
 - `robot::Robot`: Robot to move to prevent intersection
@@ -204,7 +206,7 @@ function check_intersection(robot::Robot, other_robot::Robot)
 	dist = sqrt(abs(other_robot.pos[1] - robot.pos[1])^2 + abs(other_robot.pos[2] - robot.pos[2])^2)
 	r = other_robot.radius + robot.radius
 
-	if((robot.id != other_robot.id) & (dist < r))
+	if((robot.id != other_robot.id) && (dist < r))
 		x = other_robot.pos[1] - robot.pos[1]
 		y = other_robot.pos[2] - robot.pos[2]
 
@@ -212,6 +214,11 @@ function check_intersection(robot::Robot, other_robot::Robot)
 			deg = acos(x / dist)
 		else
 			deg = -acos(x / dist)
+		end
+
+		# Needed for weird glitch where the robots end on top of each other
+		if (isnan(deg))
+			deg = pi
 		end
 
 		new_pos = [0., 0.]
@@ -242,8 +249,11 @@ To solve the intersection, the robot is moved away from the other robot on the v
 function check_intersection(robot::Robot, obstacle::Obstacle)
 	vec = intersect(obstacle, robot.pos, robot.radius)
 
-	if(abs(vec[1]) > 0 || abs(vec[2]) > 0)
+	if (isnan(vec[1]) || isnan(vec[2]))
+		println("vec nan")
+	end
 
+	if(abs(vec[1]) > 0 || abs(vec[2]) > 0)
 		new_pos = [0., 0.]
 		new_pos[1] = robot.pos[1] - vec[1]
 		new_pos[2] = robot.pos[2] - vec[2]
@@ -271,7 +281,7 @@ If not, return 0 for this sensor.
 """
 function get_sensoric_data(robot::Robot, other_robot::Robot)
 	sensor_data = Array{Float64}(undef, robot.sensor_num)
-	fill!(sensor_data, 0.0);
+	fill!(sensor_data, robot.sensor_dist);
 
 	for i in 1:robot.sensor_num
 		sensor = robot.sensor_pos[i]
@@ -291,7 +301,7 @@ function get_sensoric_data(robot::Robot, other_robot::Robot)
 				deg = -acos(x / dist)
 			end
 
-			to_border = asin(other_robot.radius/dist)
+			to_border = asin(min(1., other_robot.radius/dist))
 			diff = deg - (robot.deg + sensor[3])
 
 			# Correct without abs?
@@ -325,7 +335,7 @@ TODO: Improve rectangular obstacle by including border checking.
 """
 function get_sensoric_data(robot::Robot, obstacle::Obstacle)
 	sensor_data = Array{Float64}(undef, robot.sensor_num)
-	fill!(sensor_data, 0.0);
+	fill!(sensor_data, robot.sensor_dist);
 
 	for i in 1:robot.sensor_num
 		sensor = robot.sensor_pos[i]
