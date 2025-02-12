@@ -148,10 +148,13 @@ end
 function get_neighbors(sim::Simulation, robot::Robot, cells::Int64)
     id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.area.left) /  sim.grid_step[1]))))
     id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.area.bottom) /  sim.grid_step[2]))))
-
     robs = []
+
     for x in -cells:cells
         for y in -cells:cells
+            if(!sim.open_area && ((id_x + x) <= 1 || (id_x + x)  >= sim.num_grid || (id_y + y )<= 1 || (id_y + y)  >= sim.num_grid))
+                push!(robs, sim.area)
+            end
             append!(robs, sim.grid[min(sim.num_grid, max(1, id_x + x)), min(sim.num_grid, max(1, id_y + y))])
         end
     end

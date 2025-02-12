@@ -19,7 +19,7 @@ num_robots = 7*4
 for lines in 2:5
     for i in 1:7
         robot = Robot(i; radius=10, 
-            color="##2ecc71",
+            color="#2ecc71",
             vel=[0, 0],
             pos=[500 + 180 * (lines % 2) + (-1)^lines * 30 * (i - 1), 110 - 30 * (lines - 2)], 
             deg = pi/2,

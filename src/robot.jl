@@ -363,3 +363,49 @@ function get_sensoric_data(robot::Robot, obstacle::Obstacle)
 	end
 	return sensor_data
 end
+
+
+function get_sensoric_data(robot::Robot, border::Area)
+	sensor_data = Array{Float64}(undef, robot.sensor_num)
+	fill!(sensor_data, robot.sensor_dist);
+	pos = [0., 0.]
+
+	if (robot.pos[1] + robot.radius + robot.sensor_dist > border.right)
+		pos = [border.right, robot.pos[2]]
+	elseif (robot.pos[1] - robot.radius - robot.sensor_dist < border.left)
+		pos = [border.right, robot.pos[2]]
+	end
+
+	if (robot.pos[2] + robot.radius + robot.sensor_dist > border.top)
+		pos = [robot.pos[1], border.top]
+	elseif (robot.pos[2] - robot.radius - robot.sensor_dist < border.bottom)
+		pos = [robot.pos[1], border.bottom]
+	end
+
+	for i in 1:robot.sensor_num
+		sensor = robot.sensor_pos[i]
+
+		sensor_x = robot.pos[1] .+ sensor[1] * cos(robot.deg) .- sensor[2] * sin(robot.deg)
+		sensor_y = robot.pos[2] .+ sensor[1] * sin(robot.deg) .+ sensor[2] * cos(robot.deg)
+
+		x = pos[1] - sensor_x
+		y = pos[2] - sensor_y
+		dist = sqrt(x^2 + y^2)
+
+		if (dist < robot.sensor_dist)
+
+			if (y >= 0)
+				deg = acos(x / dist)
+			else
+				deg = -acos(x / dist)
+			end
+
+			diff = deg - (robot.deg + sensor[3])
+			if(diff < robot.sensor_deg/2)
+				sensor_data[i] = dist
+			end
+		end
+	end
+	# println(sensor_data)
+	return sensor_data
+end
