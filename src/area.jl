@@ -240,7 +240,6 @@ function degree_to_border(obstacle::Round_Obstacle, center::Array{Float64})
     return [to_border, -to_border]
 end
 
-# TODO: Implement and use for Sensoring!
 function degree_to_border(obstacle::Rectangle_Obstacle, center::Array{Float64})
     dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
     deg = [0., 0., 0., 0.]
@@ -249,10 +248,11 @@ function degree_to_border(obstacle::Rectangle_Obstacle, center::Array{Float64})
         for j in 1:2
             x =   obstacle.center[1] + (-1)^i * obstacle.width/2 - center[1]
             y =   obstacle.center[2] + (-1)^j * obstacle.height/2 - center[2]   
-            deg[(i-1)*i + j] = atan(y/x)
+            deg[(i-1)*i + j] = atan(y, x)
         end
     end
-    return [pi, -pi]
+
+    return deg
 end
 
 

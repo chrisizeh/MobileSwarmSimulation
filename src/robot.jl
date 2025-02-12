@@ -345,17 +345,19 @@ function get_sensoric_data(robot::Robot, obstacle::Obstacle)
 
 		vec = intersect(obstacle, [sensor_x, sensor_y], robot.sensor_dist)
 
-		if (sum(vec) > 0)
+		if (sum(abs.(vec)) > 0)
 			x = obstacle.center[1] - sensor_x
 			y = obstacle.center[2] - sensor_y
 			dist = sqrt(x^2 + y^2)
 
-			deg = atan(y/x)
+			deg = atan(y, x)
 			to_border = degree_to_border(obstacle, robot.pos)
 			diff = deg - (robot.deg + sensor[3])
-			diff2 = atan(vec[2]/vec[1]) - (robot.deg + sensor[3])
+			diff2 = atan(vec[2], vec[1]) - (robot.deg + sensor[3])
 
-			opts = [diff, diff2, diff + to_border[1], diff + to_border[2]]
+			opts = to_border .- (robot.deg + sensor[3])
+			push!(opts, diff)
+			push!(opts, diff2)
 			if(minimum(broadcast(abs, opts)) < robot.sensor_deg/2)
 				sensor_data[i] = robot.sensor_dist - sqrt(vec[1]^2 + vec[2]^2)
 			end
@@ -406,6 +408,5 @@ function get_sensoric_data(robot::Robot, border::Area)
 			end
 		end
 	end
-	# println(sensor_data)
 	return sensor_data
 end
