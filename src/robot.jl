@@ -137,7 +137,7 @@ function move!(robot::Robot, sec::Float64; checkBorder::Bool=false, border::Area
 	end
 
 	robot.pos = new_pos
-	robot.deg = new_deg
+	robot.deg = transform_rad(new_deg)
 end
 
 
@@ -265,6 +265,13 @@ function check_intersection(robot::Robot, obstacle::Obstacle)
 end
 
 
+function transform_rad(angle)
+    p1 = (angle .+ sign.(angle) .* pi) .% (2 * pi)
+    p2 = (sign.(sign.(angle) .+ 2 .* (sign.(abs.(((angle .+ pi) .% (2 * pi)) ./ (2 * pi))) .- 1))) .* pi
+    return p1 .- p2
+end
+
+
 """
 get_sensoric_data(robot::Robot, other_robot::Robot) -> Array{Float64}
 
@@ -282,6 +289,10 @@ If not, return 0 for this sensor.
 function get_sensoric_data(robot::Robot, other_robot::Robot)
 	sensor_data = Array{Float64}(undef, robot.sensor_num)
 	fill!(sensor_data, robot.sensor_dist);
+
+	if(robot.id == other_robot.id)
+		return sensor_data
+	end
 
 	for i in 1:robot.sensor_num
 		sensor = robot.sensor_pos[i]
@@ -304,10 +315,10 @@ function get_sensoric_data(robot::Robot, other_robot::Robot)
 			to_border = asin(min(1., other_robot.radius/dist))
 			diff = deg - (robot.deg + sensor[3])
 
-			# Correct without abs?
 			opts = [diff, diff - to_border, diff + to_border]
+			opts = transform_rad.(opts)
 
-			if(minimum(opts) < robot.sensor_deg/2)
+			if(minimum(abs.(opts)) < robot.sensor_deg/2)
 				sensor_data[i] = dist - other_robot.radius
 			end
 
@@ -344,21 +355,18 @@ function get_sensoric_data(robot::Robot, obstacle::Obstacle)
 		sensor_y = robot.pos[2] .+ sensor[1] * sin(robot.deg) .+ sensor[2] * cos(robot.deg)
 
 		vec = intersect(obstacle, [sensor_x, sensor_y], robot.sensor_dist)
-
 		if (sum(abs.(vec)) > 0)
 			x = obstacle.center[1] - sensor_x
 			y = obstacle.center[2] - sensor_y
 			dist = sqrt(x^2 + y^2)
 
 			deg = atan(y, x)
-			to_border = degree_to_border(obstacle, robot.pos)
-			diff = deg - (robot.deg + sensor[3])
-			diff2 = atan(vec[2], vec[1]) - (robot.deg + sensor[3])
+			opts = degree_to_border(obstacle, [sensor_x, sensor_y])
+			push!(opts, deg)
+			push!(opts, atan(vec[2], vec[1]))
 
-			opts = to_border .- (robot.deg + sensor[3])
-			push!(opts, diff)
-			push!(opts, diff2)
-			if(minimum(broadcast(abs, opts)) < robot.sensor_deg/2)
+			opts = transform_rad.(opts .- transform_rad.(robot.deg + sensor[3]))
+			if(minimum(abs.(opts)) < robot.sensor_deg/2)
 				sensor_data[i] = robot.sensor_dist - sqrt(vec[1]^2 + vec[2]^2)
 			end
 		end
@@ -367,44 +375,50 @@ function get_sensoric_data(robot::Robot, obstacle::Obstacle)
 end
 
 
+# TODO: Improve
 function get_sensoric_data(robot::Robot, border::Area)
 	sensor_data = Array{Float64}(undef, robot.sensor_num)
 	fill!(sensor_data, robot.sensor_dist);
 	pos = [0., 0.]
-
-	if (robot.pos[1] + robot.radius + robot.sensor_dist > border.right)
-		pos = [border.right, robot.pos[2]]
-	elseif (robot.pos[1] - robot.radius - robot.sensor_dist < border.left)
-		pos = [border.right, robot.pos[2]]
-	end
-
-	if (robot.pos[2] + robot.radius + robot.sensor_dist > border.top)
-		pos = [robot.pos[1], border.top]
-	elseif (robot.pos[2] - robot.radius - robot.sensor_dist < border.bottom)
-		pos = [robot.pos[1], border.bottom]
-	end
 
 	for i in 1:robot.sensor_num
 		sensor = robot.sensor_pos[i]
 
 		sensor_x = robot.pos[1] .+ sensor[1] * cos(robot.deg) .- sensor[2] * sin(robot.deg)
 		sensor_y = robot.pos[2] .+ sensor[1] * sin(robot.deg) .+ sensor[2] * cos(robot.deg)
+		deg = 0
+		dist = 200
 
-		x = pos[1] - sensor_x
-		y = pos[2] - sensor_y
-		dist = sqrt(x^2 + y^2)
-
-		if (dist < robot.sensor_dist)
-
-			if (y >= 0)
-				deg = acos(x / dist)
-			else
-				deg = -acos(x / dist)
+		if (sensor_x + robot.sensor_dist > border.right)
+			if(abs(robot.deg + sensor[3]) < (robot.sensor_deg/2) * robot.sensor_dist / (border.right - sensor_x))
+				sensor_data[i] = border.right - sensor_x
 			end
+		end
+		if (sensor_x - robot.sensor_dist < border.left)
+			if(abs(pi - robot.deg - sensor[3]) < (robot.sensor_deg/2) * robot.sensor_dist / (sensor_x - border.left))
+				dist = sensor_x - border.left
 
-			diff = deg - (robot.deg + sensor[3])
-			if(diff < robot.sensor_deg/2)
-				sensor_data[i] = dist
+				if(dist < sensor_data[i])
+					sensor_data[i] = dist
+				end
+			end
+		end
+		if (sensor_y + robot.sensor_dist > border.top)
+			if(abs(pi/2 - robot.deg - sensor[3]) < (robot.sensor_deg/2) * robot.sensor_dist / (border.top - sensor_y))
+				dist = border.top - sensor_y
+
+				if(dist < sensor_data[i])
+					sensor_data[i] = dist
+				end
+			end
+		end
+		if (sensor_y - robot.sensor_dist < border.bottom)
+			if(abs(3*pi/2 - robot.deg - sensor[3]) < (robot.sensor_deg/2) * robot.sensor_dist / (sensor_y - border.bottom))
+				dist = sensor_y - border.bottom
+
+				if(dist < sensor_data[i])
+					sensor_data[i] = dist
+				end
 			end
 		end
 	end

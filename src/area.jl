@@ -234,14 +234,16 @@ For the square obstacle the degree have to calculated differently (TODO).
 - `Array{Float64}`: Degree to border in both directions
 """
 function degree_to_border(obstacle::Round_Obstacle, center::Array{Float64})
-    dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
+    x = obstacle.center[1] - center[1]
+    y = obstacle.center[2] - center[2]
+    dist = sqrt(x^2 + y^2)
+    deg = atan(y, x)
 
     to_border = asin(min(obstacle.radius/dist, 1.))
-    return [to_border, -to_border]
+    return [deg + to_border, deg - to_border]
 end
 
 function degree_to_border(obstacle::Rectangle_Obstacle, center::Array{Float64})
-    dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
     deg = [0., 0., 0., 0.]
 
     for i in 1:2
