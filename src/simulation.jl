@@ -258,12 +258,11 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
             obstacles = get_neighbors(sim, sim.robots[1].history[:, i][1], sim.robots[1].history[:, i][2], 1)
         else
             obstacles = sim.area.obstacles
+            push!(obstacles, sim.area.goal)
         end
 
         for obstacle in obstacles
-            if (typeof(obstacle) == Round_Obstacle)
-                plot!(obstacle)
-            end
+            plot!(obstacle)
         end
 
         if showGrid
