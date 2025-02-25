@@ -48,31 +48,33 @@ mutable struct Simulation
         end
 
         for obstacle in area.obstacles
-            id_x = Int64(ceil((obstacle.center[1] - area.left) /  grid_step[1]))
-            id_y = Int64(ceil((obstacle.center[2] - area.bottom) /  grid_step[2]))
-            push!(grid[id_x, id_y], obstacle)
+            id_x = min(num_grid, max(1, Int64(ceil((obstacle.center[1] - area.left) /  grid_step[1]))))
+            id_y = min(num_grid, max(1, Int64(ceil((obstacle.center[2] - area.bottom) /  grid_step[2]))))
+            # push!(grid[id_x, id_y], obstacle)
 
-            if (width(obstacle) > grid_step[1])
-                id_x1 = Int64(ceil(((obstacle.center[1] - width(obstacle)/2) - area.left) / grid_step[1]))
-                id_x2 = Int64(ceil(((obstacle.center[1] + width(obstacle)/2) - area.left) / grid_step[1]))
+            # if (width(obstacle) > grid_step[1])
+            id_x1 = min(num_grid, max(1, Int64(ceil(((obstacle.center[1] - width(obstacle)/2) - area.left) / grid_step[1]))))
+            id_x2 = min(num_grid, max(1, Int64(ceil(((obstacle.center[1] + width(obstacle)/2) - area.left) / grid_step[1]))))
 
-                if (id_x1 != id_x || id_x2 != id_x)
-                    for i in id_x1:2:id_x2
-                        push!(grid[i, id_y], obstacle)
-                    end
+            # if (id_x1 != id_x || id_x2 != id_x)
+            # for i in id_x1:1:id_x2
+            #     push!(grid[i, id_y], obstacle)
+            # end
+            # end
+            # end
+
+            # if (height(obstacle) > grid_step[2])
+            id_y1 = min(num_grid, max(1, Int64(ceil(((obstacle.center[2] - height(obstacle)/2) - area.bottom) / grid_step[2]))))
+            id_y2 = min(num_grid, max(1, Int64(ceil(((obstacle.center[2] + height(obstacle)/2) - area.bottom) / grid_step[2]))))
+
+            # if (id_y1 != id_y || id_y2 != id_y)
+            for x in id_x1:id_x2
+                for y in id_y1:id_y2
+                    push!(grid[x, y], obstacle)
                 end
             end
-
-            if (height(obstacle) > grid_step[2])
-                id_y1 = Int64(ceil(((obstacle.center[2] - height(obstacle)/2) - area.bottom) / grid_step[2]))
-                id_y2 = Int64(ceil(((obstacle.center[2] + height(obstacle)/2) - area.bottom) / grid_step[2]))
-
-                if (id_y1 != id_y || id_y2 != id_y)
-                    for i in id_y1:2:id_y2
-                        push!(grid[id_x, i], obstacle)
-                    end
-                end
-            end
+                # end
+            # end
             
             
         end
@@ -113,7 +115,7 @@ function update!(sim::Simulation)
     for i in eachindex(sim.grid)
         row, col = fldmod1(i, sim.num_grid)
         if(length(sim.grid[row, col]) >= 1)
-            robs = sim.grid[row, col]
+            robs = deepcopy(sim.grid[row, col])
 
             for x in -1:1
                 for y in -1:1
@@ -121,7 +123,6 @@ function update!(sim::Simulation)
                 end
             end
             unique!(robs)
-
             if(length(robs) > 1)
                 for robot in sim.grid[row, col]
                     if (typeof(robot) == Robot)
@@ -145,29 +146,70 @@ function update!(sim::Simulation)
 end
 
 
-function robot_Shape(robot::Robot, pos::Array{Float64}, radius::Float32)
+function get_neighbors(sim::Simulation, robot::Robot, cells::Int64)
+    id_x = min(sim.num_grid, max(1, Int64(ceil((robot.pos[1] - sim.area.left) /  sim.grid_step[1]))))
+    id_y = min(sim.num_grid, max(1, Int64(ceil((robot.pos[2] - sim.area.bottom) /  sim.grid_step[2]))))
+    robs = []
+
+    for x in -cells:cells
+        for y in -cells:cells
+            if(!sim.open_area && ((id_x + x) <= 1 || (id_x + x)  >= sim.num_grid || (id_y + y )<= 1 || (id_y + y)  >= sim.num_grid))
+                push!(robs, sim.area)
+            end
+            append!(robs, sim.grid[min(sim.num_grid, max(1, id_x + x)), min(sim.num_grid, max(1, id_y + y))])
+        end
+    end
+    unique!(robs)
+
+    return robs
+end
+
+function get_neighbors(sim::Simulation, pos_x, pos_y, cells::Int64)
+    id_x = min(sim.num_grid, max(1, Int64(ceil((pos_x - sim.area.left) /  sim.grid_step[1]))))
+    id_y = min(sim.num_grid, max(1, Int64(ceil((pos_y - sim.area.bottom) /  sim.grid_step[2]))))
+    robs = []
+
+    for x in -cells:cells
+        for y in -cells:cells
+            if(!sim.open_area && ((id_x + x) <= 1 || (id_x + x)  >= sim.num_grid || (id_y + y )<= 1 || (id_y + y)  >= sim.num_grid))
+                push!(robs, sim.area)
+            end
+            append!(robs, sim.grid[min(sim.num_grid, max(1, id_x + x)), min(sim.num_grid, max(1, id_y + y))])
+        end
+    end
+    unique!(robs)
+
+    return robs
+end
+
+
+
+
+function robot_Shape(robot::Robot, pos::Array{Float64}, radius::Float32; showSensor::Bool=false)
     ang = range(0, 2π, length = 25)
     front = range(-pi/4 + pos[3], pi/4 + pos[3], length = 5)
 
     shapes = [Shape(radius * cos.(ang) .+ pos[1], radius * sin.(ang) .+ pos[2]), 
             Shape(radius * cos.(front) .+ pos[1], radius * sin.(front) .+ pos[2])]
 
-    for sensor in robot.sensor_pos
-        sensor_deg = range(pos[3] + sensor[3] - robot.sensor_deg/2, 
-                        pos[3] + sensor[3] + robot.sensor_deg/2, length = 5)
-        
-        sensor_x = pos[1] .+ sensor[1] * cos(pos[3]) .- sensor[2] * sin(pos[3])
-        sensor_y = pos[2] .+ sensor[1] * sin(pos[3]) .+ sensor[2] * cos(pos[3])
+    if(showSensor)
+        for sensor in robot.sensor_pos
+            sensor_deg = range(pos[3] + sensor[3] - robot.sensor_deg/2, 
+                            pos[3] + sensor[3] + robot.sensor_deg/2, length = 5)
+            
+            sensor_x = pos[1] .+ sensor[1] * cos(pos[3]) .- sensor[2] * sin(pos[3])
+            sensor_y = pos[2] .+ sensor[1] * sin(pos[3]) .+ sensor[2] * cos(pos[3])
 
-        x = robot.sensor_dist * cos.(sensor_deg) .+ sensor_x
-        y = robot.sensor_dist * sin.(sensor_deg) .+ sensor_y
+            x = robot.sensor_dist * cos.(sensor_deg) .+ sensor_x
+            y = robot.sensor_dist * sin.(sensor_deg) .+ sensor_y
 
-        append!(x, [sensor_x])
-        append!(y, [sensor_y])
+            append!(x, [sensor_x])
+            append!(y, [sensor_y])
 
-        append!(shapes, [Shape(radius/10 * cos.(ang) .+ sensor_x, radius/10 * sin.(ang) .+ sensor_y),
-        Shape(x, y)
-        ])
+            append!(shapes, [Shape(radius/10 * cos.(ang) .+ sensor_x, radius/10 * sin.(ang) .+ sensor_y),
+            Shape(x, y)
+            ])
+        end
     end
 
     return shapes
@@ -187,7 +229,7 @@ Plot the movements of all robots over the entire timespan.
 # Keywords
 - `speedup:Float64=1.0`: Speed up or Slow down framerate by percentage
 """
-function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false)
+function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false, showGrid::Bool=false, showNeighbors::Bool=false)
     if(length(sim.robots) == 0)
         return
     end
@@ -199,7 +241,7 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
-        plot(robot_Shape(sim.robots[1], Array(sim.robots[1].history[:, i]), sim.robots[1].radius), 
+        plot(robot_Shape(sim.robots[1], Array(sim.robots[1].history[:, i]), sim.robots[1].radius; showSensor=showSensor), 
             xlim = x,
             ylim = y,
             color = sim.robots[1].color,
@@ -208,13 +250,29 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
 
         if (length(sim.robots) > 1)
             for j in 2:length(sim.robots)
-                plot!(robot_Shape(sim.robots[j], Array(sim.robots[j].history[:, i]), sim.robots[j].radius), color=sim.robots[j].color)
+                plot!(robot_Shape(sim.robots[j], Array(sim.robots[j].history[:, i]), sim.robots[j].radius; showSensor=showSensor), color=sim.robots[j].color)
             end
         end
 
-        for obstacle in sim.area.obstacles
+        if (showNeighbors)
+            obstacles = get_neighbors(sim, sim.robots[1].history[:, i][1], sim.robots[1].history[:, i][2], 1)
+        else
+            obstacles = sim.area.obstacles
+            push!(obstacles, sim.area.goal)
+        end
+
+        for obstacle in obstacles
             plot!(obstacle)
         end
+
+        if showGrid
+            for i in 1:sim.num_grid-1
+                plot!([sim.area.left, sim.area.right], fill(sim.area.bottom + i * sim.grid_step[1], 2), color="#cccccc")
+                plot!(fill(sim.area.left + i * sim.grid_step[2], 2), [sim.area.bottom, sim.area.top], color="#cccccc")
+            end
+        end
+
+        
     end
     gif(anim, fps=speedup/sim.time_step)
 end

@@ -52,12 +52,13 @@ struct Area
     top::Int64
 
     obstacles::Array{Obstacle}
+    goal::Obstacle
 
-    function Area(left, right, bottom, top; obstacles=[]) 
+    function Area(left, right, bottom, top; obstacles=[], goal=Nothing) 
         if (left >= right || bottom >= top)
             error("incorrect border")
         else
-            new(left, right, bottom, top, obstacles)
+            new(left, right, bottom, top, obstacles, goal)
         end
     end
 end
@@ -234,25 +235,27 @@ For the square obstacle the degree have to calculated differently (TODO).
 - `Array{Float64}`: Degree to border in both directions
 """
 function degree_to_border(obstacle::Round_Obstacle, center::Array{Float64})
-    dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
+    x = obstacle.center[1] - center[1]
+    y = obstacle.center[2] - center[2]
+    dist = sqrt(x^2 + y^2)
+    deg = atan(y, x)
 
-    to_border = asin(obstacle.radius/dist)
-    return [to_border, -to_border]
+    to_border = asin(min(obstacle.radius/dist, 1.))
+    return [deg + to_border, deg - to_border]
 end
 
-# TODO: Implement and use for Sensoring!
 function degree_to_border(obstacle::Rectangle_Obstacle, center::Array{Float64})
-    dist = sqrt((obstacle.center[1] - center[1])^2 + (obstacle.center[2] - center[2])^2)
     deg = [0., 0., 0., 0.]
 
     for i in 1:2
         for j in 1:2
             x =   obstacle.center[1] + (-1)^i * obstacle.width/2 - center[1]
             y =   obstacle.center[2] + (-1)^j * obstacle.height/2 - center[2]   
-            deg[(i-1)*i + j] = atan(y/x)
+            deg[(i-1)*i + j] = atan(y, x)
         end
     end
-    return [pi, -pi]
+
+    return deg
 end
 
 
