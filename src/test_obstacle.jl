@@ -4,8 +4,8 @@ include("include_me.jl")
 robot1 = Robot(0; pos=[2, 3], vel=[1, 1], color="#900C3F")
 robot2 = Robot(0; pos=[-5, -3], vel=[1, 1])
 
-round_o = Round_Obstacle([-1.0, -1.0], 3.0)
-square_o = Rectangle_Obstacle([7.0, 5.0], 2.0, 4.0, color="#DAF7A6")
+round_o = Round_Obstacle([-1.0, -1.0], 3.0, color="#465361")
+square_o = Rectangle_Obstacle([7.0, 5.0], 2.0, 4.0, color="#465361")
 
 area = Area(-10, 10, -10, 10; obstacles=[round_o, square_o])
 
@@ -19,7 +19,7 @@ plot_hist(sim)
 
 
 # Random robots moving on area with one big obstacle
-round_o = Round_Obstacle([0, 0], 20)
+round_o = Round_Obstacle([0., 0.], 20., color="#465361")
 area = Area(-50, 50, -50, 50; obstacles=[round_o])
 
 robots = []
@@ -42,9 +42,9 @@ obstacles = []
 for i in -2:2
     for j in -2:2
         if (i * j % 2 == 0)
-            push!(obstacles, Rectangle_Obstacle([40 * i, 40 * j], 10, 15))
+            push!(obstacles, Rectangle_Obstacle([40. * i, 40. * j], 10., 15., color="#465361"))
         else
-            push!(obstacles, Round_Obstacle([40 * i, 40 * j], 10))
+            push!(obstacles, Round_Obstacle([40. * i, 40. * j], 10., color="#465361"))
         end
     end
 end
@@ -62,4 +62,4 @@ for i in 1:400
     update!(sim)
 end
 
-plot_hist(sim; speedup=1.5)
+plot_hist(sim; speedup=5., showSensor=true)

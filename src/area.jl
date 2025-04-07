@@ -52,9 +52,9 @@ struct Area
     top::Int64
 
     obstacles::Array{Obstacle}
-    goal::Obstacle
+    goals::Array{Obstacle}
 
-    function Area(left, right, bottom, top; obstacles=[], goal=Nothing) 
+    function Area(left, right, bottom, top; obstacles=[], goal=[]) 
         if (left >= right || bottom >= top)
             error("incorrect border")
         else

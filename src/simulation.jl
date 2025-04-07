@@ -229,7 +229,7 @@ Plot the movements of all robots over the entire timespan.
 # Keywords
 - `speedup:Float64=1.0`: Speed up or Slow down framerate by percentage
 """
-function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false, showGrid::Bool=false, showNeighbors::Bool=false)
+function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false, showGrid::Bool=false, showNeighbors::Bool=false, title::String="")
     if(length(sim.robots) == 0)
         return
     end
@@ -246,6 +246,9 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
             ylim = y,
             color = sim.robots[1].color,
             legend = false,
+            title=title,
+            xlabel="x",
+            ylabel="y",
             size = (w, h))
 
         if (length(sim.robots) > 1)
@@ -258,11 +261,13 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
             obstacles = get_neighbors(sim, sim.robots[1].history[:, i][1], sim.robots[1].history[:, i][2], 1)
         else
             obstacles = sim.area.obstacles
-            push!(obstacles, sim.area.goal)
+            append!(obstacles, sim.area.goals)
         end
 
         for obstacle in obstacles
-            plot!(obstacle)
+            if(typeof(obstacle) == Round_Obstacle || typeof(obstacle) == Rectangle_Obstacle)
+                plot!(obstacle)
+            end
         end
 
         if showGrid
