@@ -1,4 +1,6 @@
 using Plots
+using Measures
+
 
 include("robot.jl")
 include("area.jl")
@@ -229,15 +231,15 @@ Plot the movements of all robots over the entire timespan.
 # Keywords
 - `speedup:Float64=1.0`: Speed up or Slow down framerate by percentage
 """
-function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false, showGrid::Bool=false, showNeighbors::Bool=false, title::String="")
+function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false, showGrid::Bool=false, showNeighbors::Bool=false, title::String="", name="")
     if(length(sim.robots) == 0)
         return
     end
 
     x = x_axis(area)
     y = y_axis(area)
-    w = 500
-    h = ratio(area) * 500
+    w = 800
+    h = ratio(area) * 800
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length
@@ -247,8 +249,9 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
             color = sim.robots[1].color,
             legend = false,
             title=title,
-            xlabel="x",
-            ylabel="y",
+            left_margin=10mm,
+            xlabel="x (Meter)",
+            ylabel="y (Meter)",
             size = (w, h))
 
         if (length(sim.robots) > 1)
@@ -279,5 +282,5 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
 
         
     end
-    gif(anim, fps=speedup/sim.time_step)
+    gif(anim, "./gifs/$(name).gif", fps=speedup/sim.time_step)
 end

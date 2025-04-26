@@ -1,7 +1,7 @@
-function track!(sim::Simulation, flocking_robots, tracking_robots; steps::Int=500)
-    avoidSpeed = 0.6
-    centerSpeed = 0.4
-    turnSpeed = 0.05
+function track!(sim::Simulation, flocking_robots, tracking_robots; steps::Int=500, v_flocking=10, v_tracking=10, dist_flocking=20, dist_obstacle=30)
+    avoidSpeed = 0.05
+    avoidObstacleSpeed = 0.8
+    centerSpeed = 0.6
 
     t_turnSpeed = 0.8
 
@@ -12,8 +12,6 @@ function track!(sim::Simulation, flocking_robots, tracking_robots; steps::Int=50
     cells = ceil(Int64, flocking_robots[1].sensor_dist / minimum(sim.grid_step))
     for i in 1:steps
         for robot in flocking_robots
-            close = [0., 0.]
-            neighbors_dist = [0., 0.]
             neighbors_count = 0
             close_count = 0
             neighbors = get_neighbors(sim, robot, cells)
@@ -23,54 +21,75 @@ function track!(sim::Simulation, flocking_robots, tracking_robots; steps::Int=50
                 return
             end
 
+            centerDeg = 0
+            avoidDeg = 0
+
             for neighbor in neighbors
                 if robot != neighbor
                     dist = get_sensoric_data(robot, neighbor)
 
                     if (sum(dist) < robot.NO_DIST_FOUND)
                         nearest = argmin(dist)
-                        vals[1] = round(cos(robot.sensor_pos[nearest][3] + robot.deg) * dist[nearest]; digits=5)
-                        vals[2] = round(sin(robot.sensor_pos[nearest][3] + robot.deg) * dist[nearest]; digits=5)
-                        
-                        if ((dist[nearest] < robot.sensor_dist/4) & (typeof(neighbor) == Robot))
-                            close[1] -= vals[2]
-                            close[2] += vals[1]
+
+                        if ((dist[nearest] < dist_flocking) & (typeof(neighbor) == Robot))
+                            # closeness = 1 - dist[nearest]/dist_flocking
+                            avoidDeg -= robot.sensor_pos[nearest][3] * avoidSpeed + sign(rand()-1/2) * pi/2
                             close_count += 1
-                        elseif ((dist[nearest] < robot.sensor_dist/3) & (typeof(neighbor) != Robot))
-                            close[1] -= vals[2]
-                            close[2] += vals[1]
+                        elseif ((dist[nearest] < dist_obstacle) & (typeof(neighbor) != Robot))
+                            avoidDeg -= robot.sensor_pos[nearest][3] * avoidObstacleSpeed + pi/2
                             close_count += 1
-                        elseif ((dist[nearest] > robot.sensor_dist/2) & (typeof(neighbor) == Robot))
-                            neighbors_dist[1] += vals[1]
-                            neighbors_dist[2] += vals[2]
+                        elseif ((dist[nearest] > dist_flocking) & (typeof(neighbor) == Robot))
+                            # closeness = (dist[nearest] - dist_flocking) / (robot.sensor_dist - dist_flocking)
+                            centerDeg -= robot.sensor_pos[nearest][3] * centerSpeed
                             neighbors_count += 1
                         end
                     end
                 end
             end
 
-            v = avoidSpeed * close / max(1, close_count) + centerSpeed * neighbors_dist / max(1, neighbors_count)
-            if (abs(sum(v)) > 0)
-                if(abs(v[2]) > 0.1)
-                    deg = atan(v[2], v[1])
-                else
-                    deg = pi
-                end
-            else
-                deg = 0
-            end
-
-            deg = sign(rand()-0.5) * deg
-
-            turn = robot.radius * deg / 2 * turnSpeed
-            update_speed!(robot, vMax/2 - turn, vMax/2 + turn)
+            turnAvoid = robot.radius * avoidDeg/max(1, close_count)
+            turnCenter = robot.radius * centerDeg/max(1, neighbors_count)
+            distAvoid = 1 - sqrt(v[1] ^ 2 + v[2] ^ 2)/robot.sensor_dist
+            update_speed!(robot, v_flocking + v_flocking/2 * distAvoid - turnAvoid - turnCenter, v_flocking + v_flocking/2 * distAvoid + turnAvoid + turnCenter)
         end
 
+        # Leading Tracker
+        robot = tracking_robots[1]
+        neighbors_count = 0
+        neighbors = get_neighbors(sim, robot, cells)
+
+        vals = [0., 0.]
+
+        for neighbor in neighbors
+            if (robot != neighbor) & (typeof(neighbor) == Robot)
+                dist = get_sensoric_data(robot, neighbor)
+
+                if (minimum(dist) < (1/2 * robot.sensor_dist))
+                    nearest = argmin(dist)
+                    vals[1] += cos(robot.sensor_pos[nearest][3]) * dist[nearest]
+                    vals[2] += sin(robot.sensor_pos[nearest][3]) * dist[nearest]
+                end
+
+            end
+            
+        end
+
+        vals = vals ./ max(1, neighbors_count)
+        if (abs(vals[2]) > 0)
+            deg = atan(vals[2]/vals[1])
+        else
+            deg = 0
+        end
+
+        turn = robot.radius * deg / 2 * t_turnSpeed
+        update_speed!(robot, v_tracking - turn, v_tracking + turn)
+
+        # All Other Tracker
         for i in 2:length(tracking_robots)-1
             dist1 = get_sensoric_data(tracking_robots[i], tracking_robots[i-1])
             dist2 = get_sensoric_data(tracking_robots[i], tracking_robots[i+1])
 
-            if (i > 1 && minimum(dist1) > tracking_robots[i].sensor_dist/2)
+            if (minimum(dist1) > (1/2 * tracking_robots[i].sensor_dist))
                 nearest = argmin(dist1)
                 vals[1] = cos(tracking_robots[i].sensor_pos[nearest][3]) * dist1[nearest]
                 vals[2] = sin(tracking_robots[i].sensor_pos[nearest][3]) * dist1[nearest]
@@ -82,10 +101,10 @@ function track!(sim::Simulation, flocking_robots, tracking_robots; steps::Int=50
                 end
 
                 turn = tracking_robots[i].radius * deg / 2 * t_turnSpeed
-                update_speed!(tracking_robots[i], vMax/2 - turn, vMax/2 + turn)
+                update_speed!(tracking_robots[i], v_tracking - turn, v_tracking + turn)
             end
             
-            if (minimum(dist2) > tracking_robots[i].sensor_dist-2 || minimum(dist1) < tracking_robots[i].sensor_dist/2)
+            if (minimum(dist2) > tracking_robots[i].sensor_dist-2 || minimum(dist1) < (1/2 * tracking_robots[i].sensor_dist))
                 update_speed!(tracking_robots[i], 0, 0)
             end
         end
