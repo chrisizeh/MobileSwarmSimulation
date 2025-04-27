@@ -13,49 +13,55 @@ area = Area(0, 800, 0, 1300; obstacles=obstacles, goal=[goal])
 vFlocking = 10.0
 vTracking = 15.0
 
-for times in 1:10
-    println(times)
+avoidObstacleSpeeds = [0.15]
+centerSpeeds = [0.15]
 
-    robots = []
-    flocking_robots = []
-    tracking_robots = []
+for avoidObstacleSpeed in avoidObstacleSpeeds
+    for centerSpeed in centerSpeeds
+        for times in 1:1
 
-    # Start from 300 -> 500
+            robots = []
+            flocking_robots = []
+            tracking_robots = []
 
-    lines = 12
-    per_line = 8
-    between_robots = 25
-    tracking_start = 8
-    num_robots = per_line * lines
+            # Start from 300 -> 500
 
-    for line in 2:lines+1
-        for i in 1:per_line
-            if (line < tracking_start)
-                robot = Robot(i; radius=5,
-                    color="#31E0CB",
-                    vel=[0, 0],
-                    pos=[315 + between_robots * (per_line - 1) * (line % 2) + (-1)^line * between_robots * (i - 1), 10 + lines * between_robots - between_robots * (line - 2)],
-                    deg=pi / 2,
-                    sensor_dist=30.0, sensor_num=6, spec=pi)
-            else
-                robot = Robot(i; radius=3,
-                    color="#E08631",
-                    vel=[0, 0],
-                    pos=[315 + between_robots * (per_line - 1) * (line % 2) + (-1)^line * between_robots * (i - 1), 10 + lines * between_robots - between_robots * (line - 2)],
-                    deg=pi / 2,
-                    sensor_dist=60.0, sensor_num=8, spec=2 * pi, sensor_deg=pi / 2)
+            lines = 12
+            per_line = 8
+            between_robots = 25
+            tracking_start = 8
+            num_robots = per_line * lines
+
+            for line in 2:lines+1
+                for i in 1:per_line
+                    if (line-1 < tracking_start)
+                        robot = Robot(i; radius=5,
+                            color="#31E0CB",
+                            vel=[0, 0],
+                            pos=[315 + between_robots * (per_line - 1) * (line % 2) + (-1)^line * between_robots * (i - 1), 10 + lines * between_robots - between_robots * (line - 2)],
+                            deg=pi / 2,
+                            sensor_dist=30.0, sensor_num=6, spec=pi)
+                    else
+                        robot = Robot(i; radius=3,
+                            color="#E08631",
+                            vel=[0, 0],
+                            pos=[315 + between_robots * (per_line - 1) * (line % 2) + (-1)^line * between_robots * (i - 1), 10 + lines * between_robots - between_robots * (line - 2)],
+                            deg=pi/2,
+                            sensor_dist=60.0, sensor_num=8, spec=2*pi, sensor_deg=pi/2)
+                    end
+
+                    if (line-1 < tracking_start)
+                        push!(flocking_robots, robot)
+                    else
+                        push!(tracking_robots, robot)
+                    end
+                    push!(robots, robot)
+                end
             end
 
-            if (line < tracking_start)
-                push!(flocking_robots, robot)
-            else
-                push!(tracking_robots, robot)
-            end
-            push!(robots, robot)
+            sim = Simulation(robots, area; open_area=false, num_grid=5, time_step=0.1)
+            track!(sim, flocking_robots, tracking_robots; steps=1000, v_flocking=vFlocking, v_tracking=vTracking, dist_flocking=15, dist_obstacle=15, avoidObstacleSpeed=avoidObstacleSpeed, centerSpeed=centerSpeed)
+            plot_hist(sim; speedup=5.0, showSensor=false, showGrid=true, title="Flocking and Tracking in Confined Area", name="tunnel_$(times)_$(centerSpeed)_$(avoidObstacleSpeed)")
         end
     end
-
-    sim = Simulation(robots, area; open_area=false, num_grid=5, time_step=0.1)
-    track!(sim, flocking_robots, tracking_robots; steps=1000, v_flocking=vFlocking, v_tracking=vTracking, dist_flocking=15, dist_obstacle=15)
-    plot_hist(sim; speedup=5.0, showSensor=false, showGrid=true, title="Flocking and Tracking in Confined Area", name="tunnel_$(times).gif")
 end

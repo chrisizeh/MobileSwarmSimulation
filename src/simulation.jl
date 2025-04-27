@@ -238,8 +238,8 @@ function plot_hist(sim::Simulation; speedup::Float64=1.0, showSensor::Bool=false
 
     x = x_axis(area)
     y = y_axis(area)
-    w = 800
-    h = ratio(area) * 800
+    w = 600
+    h = ratio(area) * 600
     
     min_length = minimum([size(robot.history)[2] for robot in sim.robots])
     anim = @animate for i=1:min_length

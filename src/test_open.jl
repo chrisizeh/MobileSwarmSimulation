@@ -16,39 +16,39 @@ goal = Round_Obstacle([100.0, 1200.0], 50.0, color="#2C68A7")
 
 area = Area(0, 1300, 0, 1300; obstacles=obstacles, goal=[goal])
 
-vFlocking = 20.0
-vTracking = 25.0
+vFlocking = 10.0
+vTracking = 15.0
 
-for times in 1:10
+for times in 1:1
     robots = []
     flocking_robots = []
     tracking_robots = []
 
-    lines = 7
+    lines = 8
     per_line = 12
     between_robots = 20
-    tracking_start = 6
+    tracking_start = 5
     num_robots = per_line * lines
 
     for line in 2:lines+1
         for i in 1:per_line
-            if(line < tracking_start)
+            if(line-1 < tracking_start)
                 robot = Robot(i; radius=5, 
                     color="#31E0CB",
                     vel=[0, 0],
                     pos=[500 + between_robots*(per_line-1) * (line % 2) + (-1)^line * between_robots * (i - 1), 10 + lines * between_robots - between_robots * (line - 2)], 
-                    deg = pi/2,
-                    sensor_dist=70.0, sensor_num=6, spec=pi)
+                    deg = pi/2 + pi/6,
+                    sensor_dist=50.0, sensor_num=6, spec=pi)
             else    
                 robot = Robot(i; radius=3, 
                     color="#E08631",
                     vel=[0, 0],
                     pos=[500 + between_robots*(per_line-1) * (line % 2) + (-1)^line * between_robots * (i - 1), 10 + lines * between_robots - between_robots * (line - 2)], 
                     deg = pi/2,
-                    sensor_dist=200.0, sensor_num=8, spec=2*pi, sensor_deg=pi/2)
+                    sensor_dist=300.0, sensor_num=8, spec=2*pi, sensor_deg=pi/2)
             end
 
-            if (line < tracking_start)
+            if (line-1 < tracking_start)
                 push!(flocking_robots, robot)
             else
                 push!(tracking_robots, robot)
@@ -58,6 +58,6 @@ for times in 1:10
     end
 
     sim = Simulation(robots, area; open_area=false, num_grid=5, time_step=0.1)
-    track!(sim, flocking_robots, tracking_robots; steps=1000, v_flocking=vFlocking, v_tracking=vTracking, dist_flocking=40, dist_obstacle=25)
-    plot_hist(sim; speedup=5.0, showSensor=false, showGrid=true, title="Flocking and Tracking in Open Area", name="open_$(times).gif")
+    track!(sim, flocking_robots, tracking_robots; steps=1500, v_flocking=vFlocking, v_tracking=vTracking, dist_flocking=40, dist_obstacle=25, avoidObstacleSpeed=0.4, centerSpeed=0.6)
+    plot_hist(sim; speedup=5.0, showSensor=false, showGrid=true, title="Flocking and Tracking in Open Area", name="open_$(times)")
 end
